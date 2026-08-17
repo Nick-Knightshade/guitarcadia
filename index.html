@@ -601,18 +601,35 @@ const SKILL_META = [
 const TIER_LABELS = { wood:"Wood Tier", iron:"Iron Tier", bronze:"Bronze Tier", silver:"Silver Tier", gold:"Gold Tier" };
 const AVATAR_PLACEHOLDER_EMOJI = "🧑‍🎤"; // shown until real avatar_file images are wired in
 
-// ---------- fetch + parse a tab from the sheet as plain row objects ----------
-async function fetchSheetTab(tabName){
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=2&sheet=${encodeURIComponent(tabName)}`;
+// ---------- fixed column order, matching the Students/Songs tabs exactly ----------
+const STUDENT_FIELDS = [
+  "student_id","name","total_level","prestige_level","prestige_tier","avatar_file",
+  "health_cur","health_max","shields_cur","shields_max","power_cur","power_max",
+  "fragments","chests","picks",
+  "chords_level","chords_score","arpeggios_level","arpeggios_score",
+  "scales_level","scales_score","lead_level","lead_score",
+  "theory_level","theory_score","songs_level","songs_score",
+  "singing_level","singing_score","technique_level","technique_score",
+  "songwriting_level","songwriting_score","production_level","production_score",
+  "drive_folder_url"
+];
+const SONG_FIELDS = ["student_id","title","artist","status"];
+
+// ---------- fetch a tab and map its columns positionally (ignores header labels entirely) ----------
+async function fetchSheetRows(tabName, startRow, fieldOrder){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0&sheet=${encodeURIComponent(tabName)}`;
   const res = await fetch(url);
   const text = await res.text();
   const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
-  const cols = json.table.cols.map(c => c.label || "");
   return json.table.rows
+    .slice(startRow - 1) // skip header row(s) by position, not by label
     .filter(r => r.c && r.c.some(cell => cell && cell.v !== null && cell.v !== ""))
     .map(r => {
       const obj = {};
-      r.c.forEach((cell, i) => { obj[cols[i]] = cell ? cell.v : null; });
+      fieldOrder.forEach((field, i) => {
+        const cell = r.c[i];
+        obj[field] = cell ? cell.v : null;
+      });
       return obj;
     });
 }
@@ -752,8 +769,8 @@ async function init(){
 
   try {
     const [studentRows, songRows] = await Promise.all([
-      fetchSheetTab('Students'),
-      fetchSheetTab('Songs')
+      fetchSheetRows('Students', 3, STUDENT_FIELDS), // data starts row 3 (2 header rows above it)
+      fetchSheetRows('Songs', 2, SONG_FIELDS)          // data starts row 2 (1 header row above it)
     ]);
 
     const row = studentRows.find(r => (r.student_id || '').toLowerCase().trim() === studentId);
