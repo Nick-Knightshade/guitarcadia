@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Guitarcadia — Character Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Baloo+2:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --crimson-deep:   #5c0d16;
+    --crimson-main:   #8c1621;
+    --crimson-glow:   #c72a37;
+    --gold:           #e3ac3d;
+    --gold-bright:    #f4cf7a;
+    --parchment:      #ecdcb2;
+    --parchment-dark: #d8c393;
+    --ink:            #3a2415;
+
+    /* skill colors */
+    --c-chords:      #e2454f;
+    --c-arpeggios:   #5b6fe0;
+    --c-scales:      #4fa968;
+    --c-lead:        #57c7dd;
+    --c-theory:      #949494;
+    --c-songs:       #e8c93a;
+    --c-singing:     #e08a3a;
+    --c-technique:   #9b5de0;
+    --c-songwriting: #d4af37;
+    --c-production:  #2f6b3a;
+    --c-total:       #d9d9d9;
+
+    /* prestige tiers */
+    --tier-wood-a:   #7a5230; --tier-wood-b:   #4d3319;
+    --tier-iron-a:   #8b8d92; --tier-iron-b:   #4a4c50;
+    --tier-bronze-a: #c1793f; --tier-bronze-b: #6e431f;
+    --tier-silver-a: #dedede; --tier-silver-b: #9a9a9a;
+    --tier-gold-a:   #f4cf7a; --tier-gold-b:   #b8842a;
+  }
+
+  *{ box-sizing:border-box; }
+
+  /* black stroke for readability on colored/heading text */
+  .stroke-lg{
+    -webkit-text-stroke: 2px #1a0f08;
+    text-stroke: 2px #1a0f08;
+    paint-order: stroke fill;
+  }
+  .stroke-sm{
+    -webkit-text-stroke: 1px #1a0f08;
+    text-stroke: 1px #1a0f08;
+    paint-order: stroke fill;
+  }
+
+  body{
+    margin:0;
+    padding:28px 14px 60px;
+    background: radial-gradient(ellipse at top, #7a1420 0%, var(--crimson-deep) 55%, #3d0810 100%);
+    font-family:'Baloo 2', sans-serif;
+    color: var(--ink);
+    display:flex;
+    justify-content:center;
+  }
+
+  .page{
+    width:100%;
+    max-width:1080px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+
+  /* ---------- LOGO ---------- */
+  .logo-wrap{
+    display:flex;
+    justify-content:center;
+    margin-bottom:-6px;
+  }
+  .logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'Bangers', cursive;
+    font-size:2.2rem;
+    color: var(--gold-bright);
+    text-shadow: 3px 3px 0 var(--crimson-deep);
+    letter-spacing:1px;
+  }
+  .logo .logo-icon{ font-size:2.4rem; filter: drop-shadow(2px 2px 0 var(--crimson-deep)); }
+  .logo-note{
+    text-align:center;
+    color: var(--gold-bright);
+    opacity:0.55;
+    font-size:0.65rem;
+    font-family:'Space Mono', monospace;
+    margin-top:-16px;
+  }
+
+  /* ---------- SHARED PANEL ---------- */
+  .panel{
+    background: var(--parchment);
+    border:3px solid var(--gold);
+    border-radius:16px;
+    padding:18px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+    display:flex;
+    flex-direction:column;
+  }
+
+  .panel-title{
+    font-family:'Bangers', cursive;
+    font-size:1.35rem;
+    letter-spacing:1px;
+    color: var(--crimson-main);
+    margin:0 0 12px 0;
+    border-bottom:2px dashed var(--gold);
+    padding-bottom:8px;
+  }
+
+  /* ---------- PLAYER CARD ---------- */
+  .player-card{
+    border:3px solid var(--gold-bright);
+    border-radius:18px;
+    padding:20px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    background: linear-gradient(155deg, var(--tier-a), var(--tier-b));
+    box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+  }
+  .player-card.tier-wood   { --tier-a: var(--tier-wood-a);   --tier-b: var(--tier-wood-b); }
+  .player-card.tier-iron   { --tier-a: var(--tier-iron-a);   --tier-b: var(--tier-iron-b); }
+  .player-card.tier-bronze { --tier-a: var(--tier-bronze-a); --tier-b: var(--tier-bronze-b); }
+  .player-card.tier-silver { --tier-a: var(--tier-silver-a); --tier-b: var(--tier-silver-b); }
+  .player-card.tier-gold   { --tier-a: var(--tier-gold-a);   --tier-b: var(--tier-gold-b); }
+
+  .level-badge{
+    background: rgba(0,0,0,0.28);
+    border:4px solid var(--gold-bright);
+    border-radius:14px;
+    padding:8px 14px;
+    text-align:center;
+    min-width:88px;
+    flex-shrink:0;
+  }
+  .level-badge .tl-num{
+    font-family:'Bangers', cursive;
+    font-size:2.1rem;
+    color: var(--gold-bright);
+    line-height:1;
+    text-shadow:2px 2px 0 rgba(0,0,0,0.4);
+  }
+  .level-badge .tl-lbl{
+    font-size:0.55rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color: var(--gold-bright);
+    opacity:0.8;
+  }
+  .level-badge .prestige{
+    margin-top:6px;
+    font-family:'Space Mono', monospace;
+    font-size:0.7rem;
+    color:#fff;
+    background: var(--crimson-glow);
+    border-radius:20px;
+    padding:2px 8px;
+    display:inline-block;
+  }
+
+  .player-name-block{ display:flex; flex-direction:column; }
+  .player-name{
+    font-family:'Bangers', cursive;
+    font-size:2.4rem;
+    color:#fff;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.35);
+    letter-spacing:1px;
+    line-height:1;
+  }
+  .tier-tag{
+    margin-top:6px;
+    align-self:flex-start;
+    font-size:0.7rem;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color: rgba(255,255,255,0.85);
+    font-weight:700;
+  }
+
+  /* ---------- STATS ---------- */
+  .stats-row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .stat-block{
+    flex:1;
+    min-width:140px;
+    background: rgba(0,0,0,0.06);
+    border:2px solid var(--gold);
+    border-radius:12px;
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .stat-block .emoji{ font-size:1.6rem; }
+  .stat-block .stat-name{
+    font-size:0.65rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    opacity:0.65;
+  }
+  .stat-block .stat-val{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size:1.05rem;
+    color: var(--crimson-deep);
+  }
+
+  /* ---------- CURRENCIES ---------- */
+  .currency-row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .currency-chip{
+    flex:1;
+    min-width:140px;
+    background: var(--gold-bright);
+    border:2px solid var(--gold);
+    border-radius:30px;
+    padding:8px 16px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .currency-chip .emoji{ font-size:1.5rem; }
+  .currency-chip .cur-val{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size:1.1rem;
+  }
+  .currency-chip .cur-name{
+    font-size:0.6rem;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    opacity:0.7;
+    display:block;
+    margin-top:-2px;
+  }
+
+  /* ---------- REPERTOIRE ---------- */
+  .song-list{
+    list-style:none; margin:0; padding:0 4px 0 0;
+    display:flex; flex-direction:column; gap:8px;
+    flex:1; min-height:0;
+    overflow-y:auto;
+    max-height:420px;
+  }
+  .song-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    background: rgba(255,255,255,0.4);
+    border-radius:8px;
+    padding:8px 12px;
+  }
+  .song-info .song-title{ font-weight:700; font-size:0.95rem; }
+  .song-info .song-artist{ font-size:0.75rem; opacity:0.65; }
+  .song-status{
+    font-size:0.62rem;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    padding:4px 10px;
+    border-radius:20px;
+    color:#fff;
+    white-space:nowrap;
+    font-weight:700;
+  }
+  .song-status.learning{ background:#8c8c8c; }
+  .song-status.playable{ background:#4384c9; }
+  .song-status.mastered{ background: var(--crimson-main); }
+
+  /* ---------- AVATAR ---------- */
+  .avatar-section{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    background: radial-gradient(circle at center, #a3202e 0%, var(--crimson-main) 60%, var(--crimson-deep) 100%);
+    border-color: var(--gold-bright);
+  }
+  .avatar-section .panel-title{ color: var(--gold-bright); border-color: var(--gold-bright); }
+  .avatar-frame{
+    width:200px; height:200px;
+    border-radius:20px;
+    background: linear-gradient(160deg, #fbe3a4, #e3ac3d);
+    border:5px solid var(--gold-bright);
+    display:flex; align-items:center; justify-content:center;
+    font-size:5.5rem;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.25);
+  }
+  .avatar-note{
+    margin-top:10px;
+    color: var(--gold-bright);
+    opacity:0.75;
+    font-size:0.7rem;
+    text-align:center;
+    max-width:320px;
+  }
+
+  /* ---------- SKILLBOOK ---------- */
+  .skillbook{
+    display:flex;
+    background: var(--parchment-dark);
+    border-radius:10px;
+    overflow:hidden;
+    position:relative;
+  }
+  .skillbook::after{
+    content:"";
+    position:absolute;
+    left:50%; top:0; bottom:0;
+    width:3px;
+    background: var(--gold);
+    opacity:0.5;
+    transform: translateX(-50%);
+  }
+  .skill-col{
+    flex:1;
+    padding:14px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .total-level-row{
+    grid-column:1/-1;
+    text-align:center;
+    padding:10px 0 4px;
+  }
+  .total-level-row .tlr-num{
+    font-family:'Bangers', cursive;
+    font-size:1.8rem;
+    color:#8a8a8a;
+    text-shadow:1px 1px 0 rgba(0,0,0,0.15);
+  }
+  .total-level-row .tlr-lbl{
+    font-size:0.62rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    opacity:0.6;
+  }
+  .skill-row{ }
+  .skill-row .skill-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:4px;
+  }
+  .skill-row .skill-name{
+    font-family:'Bangers', cursive;
+    font-size:0.95rem;
+    letter-spacing:0.5px;
+  }
+  .skill-row .skill-nums{
+    font-family:'Space Mono', monospace;
+    font-size:0.72rem;
+    opacity:0.75;
+  }
+  .skill-bar-track{
+    height:9px;
+    border-radius:6px;
+    background: rgba(0,0,0,0.12);
+    overflow:hidden;
+  }
+  .skill-bar-fill{
+    height:100%;
+    border-radius:6px;
+  }
+
+  /* ---------- LET'S PRACTICE ---------- */
+  .practice-single{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .practice-btn{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    text-decoration:none;
+    color: var(--ink);
+    background: linear-gradient(160deg, var(--gold-bright), var(--gold));
+    border:3px solid var(--crimson-main);
+    border-radius:18px;
+    padding:28px 40px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+    text-align:center;
+  }
+  .practice-btn:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 9px 0 rgba(0,0,0,0.25);
+  }
+  .practice-btn .pt-icon{ font-size:3rem; }
+  .practice-btn .pt-label{
+    font-family:'Bangers', cursive;
+    font-size:1.3rem;
+    letter-spacing:0.5px;
+  }
+  .practice-btn .pt-sub{
+    font-size:0.7rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    opacity:0.65;
+  }
+
+  /* ---------- ROW LAYOUTS ---------- */
+  .row-2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:22px;
+    align-items:stretch;
+  }
+  .row-stack{
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+  .row-player{
+    display:grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap:22px;
+    align-items:stretch;
+  }
+  .row-player .player-card{ height:100%; }
+
+  /* ---------- AVATAR BANNER ---------- */
+  .avatar-banner{
+    position:relative;
+    min-height:220px;
+    border:3px solid var(--gold-bright);
+    border-radius:18px;
+    background: linear-gradient(120deg, #a3202e 0%, var(--crimson-main) 55%, var(--crimson-deep) 100%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    overflow:hidden;
+    padding:50px 20px 20px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+    text-align:center;
+  }
+  .avatar-banner .panel-title{
+    position:absolute;
+    top:14px; left:22px;
+    margin:0; padding:0; border:none;
+    color: var(--gold-bright);
+  }
+  .avatar-banner .avatar-frame{
+    width:170px; height:170px;
+    flex-shrink:0;
+  }
+  .avatar-banner .avatar-note{
+    max-width:320px;
+    margin-top:0;
+  }
+  .avatar-banner .location-tag{
+    position:absolute;
+    bottom:14px; right:20px;
+    font-size:0.65rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color: var(--gold-bright);
+    opacity:0.7;
+    font-family:'Space Mono', monospace;
+  }
+
+  @media (max-width:760px){
+    .row-2{ grid-template-columns: 1fr; }
+  }
+  @media (max-width:520px){
+    .player-card{ flex-direction:column; text-align:center; }
+    .skillbook{ flex-direction:column; }
+    .skillbook::after{ display:none; }
+    .row-2{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="logo-wrap">
+    <div class="logo stroke-lg"><span class="logo-icon">🎸</span>GUITARCADIA</div>
+  </div>
+  <div class="logo-note">— swap for your exported logo PNG —</div>
+
+  <!-- PLAYER CARD -->
+  <div class="player-card" id="playerCard">
+    <div class="level-badge">
+      <div class="tl-num stroke-lg" id="pcLevel"></div>
+      <div class="tl-lbl stroke-sm">Total Lvl</div>
+      <div class="prestige stroke-sm" id="pcPrestige"></div>
+    </div>
+    <div class="player-name-block">
+      <div class="player-name stroke-lg" id="pcName"></div>
+      <div class="tier-tag stroke-sm" id="pcTier"></div>
+    </div>
+  </div>
+
+  <!-- STATS & CURRENCIES -->
+  <div class="row-2">
+    <div class="panel">
+      <div class="panel-title stroke-lg">Stats</div>
+      <div class="stats-row" id="statsRow"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title stroke-lg">Currencies</div>
+      <div class="currency-row" id="currencyRow"></div>
+    </div>
+  </div>
+
+  <!-- AVATAR & SKILLS -->
+  <div class="row-2">
+    <div class="avatar-banner">
+      <div class="panel-title stroke-lg">Avatar</div>
+      <div class="avatar-frame" id="avatarFrame"></div>
+      <div class="avatar-note">Exported from Photoshop after each customization session — swap the file, page updates automatically. Background will eventually reflect a purchasable "Location" (studio, stage, dungeon, etc).</div>
+      <div class="location-tag">Location: Default Studio</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title stroke-lg">Skills</div>
+      <div class="total-level-row">
+        <div class="tlr-num stroke-lg" id="skTotalNum"></div>
+        <div class="tlr-lbl stroke-sm">Total Skill Level</div>
+      </div>
+      <div class="skillbook" id="skillbook"></div>
+    </div>
+  </div>
+
+  <!-- REPERTOIRE & LET'S PRACTICE -->
+  <div class="row-2">
+    <div class="panel">
+      <div class="panel-title stroke-lg">Repertoire</div>
+      <ul class="song-list" id="songList"></ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title stroke-lg">Let's Practice</div>
+      <div class="practice-single" id="practiceSingle"></div>
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+/* ============================================================
+   LIVE DATA SOURCE
+   This page reads directly from the Guitarcadia Google Sheet
+   using Google's public "gviz" JSON endpoint (read-only, no
+   API key needed since the sheet is shared as "Anyone with
+   the link — Viewer"). Which student loads is decided by the
+   ?student= part of this page's own URL, matched against the
+   student_id column in the Students tab.
+   ============================================================ */
+
+const SHEET_ID = "1ywTpWkv7Bg9ZygvvZfYnOJh1LpjT6CbIEqEIy-GFyiU";
+
+// Fixed UI icons — these aren't stored per-student in the sheet,
+// they're just the constant symbols for each stat/currency.
+const STAT_META = {
+  health:  { emoji:"❤️", name:"Health" },
+  shields: { emoji:"🛡️", name:"Shields" },
+  power:   { emoji:"⚡", name:"Power" }
+};
+const CURRENCY_META = {
+  fragments: { emoji:"🔷", name:"Golden Fragments" },
+  chests:    { emoji:"🎁", name:"Golden Pick Chests" },
+  picks:     { emoji:"🪙", name:"Golden Picks" }
+};
+const SKILL_META = [
+  { key:"chords",      name:"Chords",      color:"var(--c-chords)" },
+  { key:"arpeggios",   name:"Arpeggios",   color:"var(--c-arpeggios)" },
+  { key:"scales",      name:"Scales",      color:"var(--c-scales)" },
+  { key:"lead",        name:"Lead",        color:"var(--c-lead)" },
+  { key:"theory",      name:"Theory",      color:"var(--c-theory)" },
+  { key:"songs",       name:"Songs",       color:"var(--c-songs)" },
+  { key:"singing",     name:"Singing",     color:"var(--c-singing)" },
+  { key:"technique",   name:"Technique",   color:"var(--c-technique)" },
+  { key:"songwriting", name:"Songwriting", color:"var(--c-songwriting)" },
+  { key:"production",  name:"Production",  color:"var(--c-production)" }
+];
+const TIER_LABELS = { wood:"Wood Tier", iron:"Iron Tier", bronze:"Bronze Tier", silver:"Silver Tier", gold:"Gold Tier" };
+const AVATAR_PLACEHOLDER_EMOJI = "🧑‍🎤"; // shown until real avatar_file images are wired in
+
+// ---------- fetch + parse a tab from the sheet as plain row objects ----------
+async function fetchSheetTab(tabName){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=2&sheet=${encodeURIComponent(tabName)}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+  const cols = json.table.cols.map(c => c.label || "");
+  return json.table.rows
+    .filter(r => r.c && r.c.some(cell => cell && cell.v !== null && cell.v !== ""))
+    .map(r => {
+      const obj = {};
+      r.c.forEach((cell, i) => { obj[cols[i]] = cell ? cell.v : null; });
+      return obj;
+    });
+}
+
+// ---------- turn a flat sheet row (+ matching song rows) into the shape render() expects ----------
+function buildStudentObject(row, songRows){
+  const stats = {};
+  Object.keys(STAT_META).forEach(key => {
+    stats[key] = {
+      cur: Number(row[`${key}_cur`]) || 0,
+      max: Number(row[`${key}_max`]) || 0,
+      emoji: STAT_META[key].emoji,
+      name: STAT_META[key].name
+    };
+  });
+
+  const currencies = {};
+  Object.keys(CURRENCY_META).forEach(key => {
+    currencies[key] = {
+      val: Number(row[key]) || 0,
+      emoji: CURRENCY_META[key].emoji,
+      name: CURRENCY_META[key].name
+    };
+  });
+
+  const skills = SKILL_META.map(meta => ({
+    name: meta.name,
+    color: meta.color,
+    level: Number(row[`${meta.key}_level`]) || 0,
+    score: Number(row[`${meta.key}_score`]) || 0
+  }));
+
+  const repertoire = songRows.map(s => ({
+    title: s.title,
+    artist: s.artist,
+    status: (s.status || "learning").toLowerCase()
+  }));
+
+  return {
+    name: row.name,
+    totalLevel: Number(row.total_level) || 0,
+    prestigeLevel: Number(row.prestige_level) || 0,
+    prestigeTier: (row.prestige_tier || "wood").toLowerCase(),
+    avatarEmoji: AVATAR_PLACEHOLDER_EMOJI, // swap for real image once avatar_file is wired in
+    stats,
+    currencies,
+    repertoire,
+    skills,
+    driveFolder: {
+      url: row.drive_folder_url || "#",
+      label: "Open My Practice Folder"
+    }
+  };
+}
+
+function render(s){
+  // player card
+  document.getElementById('pcLevel').textContent = s.totalLevel;
+  document.getElementById('pcPrestige').textContent = `Prestige ${s.prestigeLevel}`;
+  document.getElementById('pcName').textContent = s.name;
+  document.getElementById('pcTier').textContent = TIER_LABELS[s.prestigeTier];
+  document.getElementById('playerCard').classList.add('tier-' + s.prestigeTier);
+
+  // stats
+  const statsHTML = Object.values(s.stats).map(st => `
+    <div class="stat-block">
+      <div class="emoji">${st.emoji}</div>
+      <div>
+        <div class="stat-name">${st.name}</div>
+        <div class="stat-val">${st.cur}/${st.max}</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('statsRow').innerHTML = statsHTML;
+
+  // currencies
+  const curHTML = Object.values(s.currencies).map(c => `
+    <div class="currency-chip">
+      <div class="emoji">${c.emoji}</div>
+      <div>
+        <div class="cur-val">${c.val}</div>
+        <span class="cur-name">${c.name}</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('currencyRow').innerHTML = curHTML;
+
+  // repertoire
+  const songHTML = s.repertoire.map(song => `
+    <li class="song-row">
+      <div class="song-info">
+        <div class="song-title">${song.title}</div>
+        <div class="song-artist">${song.artist}</div>
+      </div>
+      <span class="song-status ${song.status}">${song.status}</span>
+    </li>
+  `).join('');
+  document.getElementById('songList').innerHTML = songHTML;
+
+  // avatar
+  document.getElementById('avatarFrame').textContent = s.avatarEmoji;
+
+  // skills — total
+  document.getElementById('skTotalNum').textContent = s.totalLevel;
+
+  // skills — two columns
+  const half = Math.ceil(s.skills.length / 2);
+  const colHTML = arr => arr.map(sk => `
+    <div class="skill-row">
+      <div class="skill-top">
+        <span class="skill-name stroke-sm" style="color:${sk.color}">${sk.name}</span>
+        <span class="skill-nums stroke-sm">Lv ${sk.level} · ${sk.score}/60</span>
+      </div>
+      <div class="skill-bar-track">
+        <div class="skill-bar-fill" style="width:${(sk.score/60*100).toFixed(0)}%; background:${sk.color}"></div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('skillbook').innerHTML = `
+    <div class="skill-col">${colHTML(s.skills.slice(0, half))}</div>
+    <div class="skill-col">${colHTML(s.skills.slice(half))}</div>
+  `;
+
+  // let's practice
+  document.getElementById('practiceSingle').innerHTML = `
+    <a class="practice-btn" href="${s.driveFolder.url}" target="_blank" rel="noopener">
+      <div class="pt-icon">📁</div>
+      <div class="pt-label">${s.driveFolder.label}</div>
+      <div class="pt-sub">${s.name}'s Guitarcadia Drive</div>
+    </a>
+  `;
+}
+
+async function init(){
+  const params = new URLSearchParams(window.location.search);
+  const studentId = (params.get('student') || 'rafi').toLowerCase().trim(); // defaults to rafi for easy testing
+
+  try {
+    const [studentRows, songRows] = await Promise.all([
+      fetchSheetTab('Students'),
+      fetchSheetTab('Songs')
+    ]);
+
+    const row = studentRows.find(r => (r.student_id || '').toLowerCase().trim() === studentId);
+
+    if(!row){
+      document.querySelector('.page').innerHTML =
+        `<div style="color:#fff; text-align:center; padding:60px 20px; font-family:'Baloo 2', sans-serif;">
+          No student found for "<strong>${studentId}</strong>". Double-check the student_id column in the Students tab.
+        </div>`;
+      return;
+    }
+
+    const matchingSongs = songRows.filter(s => (s.student_id || '').toLowerCase().trim() === studentId);
+    const STUDENT = buildStudentObject(row, matchingSongs);
+    render(STUDENT);
+
+  } catch(err){
+    document.querySelector('.page').innerHTML =
+      `<div style="color:#fff; text-align:center; padding:60px 20px; font-family:'Baloo 2', sans-serif;">
+        Couldn't load profile data. Check that the Google Sheet is shared as "Anyone with the link — Viewer".<br>
+        <span style="opacity:0.7; font-size:0.8rem;">(${err.message})</span>
+      </div>`;
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
