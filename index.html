@@ -51,6 +51,12 @@
     text-stroke: 2.5px #1a0f08;
     paint-order: stroke fill;
   }
+  .text-solid{
+    color: #1a0f08;
+    font-weight:700;
+    -webkit-text-stroke: 0;
+    text-stroke: 0;
+  }
 
   body{
     margin:0;
@@ -325,7 +331,6 @@
     font-size:0.62rem;
     text-transform:uppercase;
     letter-spacing:1px;
-    opacity:0.6;
   }
   .skill-row{ }
   .skill-row .skill-top{
@@ -342,7 +347,6 @@
   .skill-row .skill-nums{
     font-family:'Space Mono', monospace;
     font-size:0.72rem;
-    opacity:0.75;
   }
   .skill-bar-track{
     height:9px;
@@ -505,7 +509,7 @@
       <div class="panel-title stroke-lg">Skills</div>
       <div class="total-level-row">
         <div class="tlr-num stroke-lg" id="skTotalNum"></div>
-        <div class="tlr-lbl stroke-sm">Total Skill Level</div>
+        <div class="tlr-lbl text-solid">Total Skill Level</div>
       </div>
       <div class="skillbook" id="skillbook"></div>
     </div>
@@ -717,7 +721,7 @@ function render(s){
     <div class="skill-row">
       <div class="skill-top">
         <span class="skill-name stroke-sm" style="color:${sk.color}">${sk.name}</span>
-        <span class="skill-nums stroke-sm">Lv ${sk.level} · ${sk.score}/60</span>
+        <span class="skill-nums text-solid">Lv ${sk.level} · ${sk.score}/60</span>
       </div>
       <div class="skill-bar-track">
         <div class="skill-bar-fill" style="width:${(sk.score/60*100).toFixed(0)}%; background:${sk.color}"></div>
