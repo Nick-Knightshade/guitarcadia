@@ -42,13 +42,13 @@
 
   /* black stroke for readability on colored/heading text */
   .stroke-lg{
-    -webkit-text-stroke: 2px #1a0f08;
-    text-stroke: 2px #1a0f08;
+    -webkit-text-stroke: 5px #1a0f08;
+    text-stroke: 5px #1a0f08;
     paint-order: stroke fill;
   }
   .stroke-sm{
-    -webkit-text-stroke: 1px #1a0f08;
-    text-stroke: 1px #1a0f08;
+    -webkit-text-stroke: 2.5px #1a0f08;
+    text-stroke: 2.5px #1a0f08;
     paint-order: stroke fill;
   }
 
@@ -86,7 +86,12 @@
     text-shadow: 3px 3px 0 var(--crimson-deep);
     letter-spacing:1px;
   }
-  .logo .logo-icon{ font-size:2.4rem; filter: drop-shadow(2px 2px 0 var(--crimson-deep)); }
+  .logo .logo-icon{ height:2.4rem; width:auto; filter: drop-shadow(2px 2px 0 var(--crimson-deep)); }
+  .icon-img{ display:block; object-fit:contain; }
+  .stat-block .emoji img{ width:28px; height:28px; object-fit:contain; }
+  .currency-chip .emoji img{ width:24px; height:24px; object-fit:contain; }
+  .avatar-frame img{ width:100%; height:100%; object-fit:cover; border-radius:14px; }
+  .practice-btn .pt-icon img{ width:100%; height:100%; object-fit:contain; }
   .logo-note{
     text-align:center;
     color: var(--gold-bright);
@@ -204,7 +209,7 @@
     align-items:center;
     gap:10px;
   }
-  .stat-block .emoji{ font-size:1.6rem; }
+  .stat-block .emoji{ width:1.6rem; height:1.6rem; }
   .stat-block .stat-name{
     font-size:0.65rem;
     text-transform:uppercase;
@@ -235,7 +240,7 @@
     align-items:center;
     gap:10px;
   }
-  .currency-chip .emoji{ font-size:1.5rem; }
+  .currency-chip .emoji{ width:1.5rem; height:1.5rem; }
   .currency-chip .cur-val{
     font-family:'Space Mono', monospace;
     font-weight:700;
@@ -298,8 +303,12 @@
     background: linear-gradient(160deg, #fbe3a4, #e3ac3d);
     border:5px solid var(--gold-bright);
     display:flex; align-items:center; justify-content:center;
-    font-size:5.5rem;
+    overflow:hidden;
     box-shadow: inset 0 0 24px rgba(0,0,0,0.25);
+  }
+  .avatar-frame img{
+    width:100%; height:100%;
+    object-fit:contain;
   }
   .avatar-note{
     margin-top:10px;
@@ -405,7 +414,7 @@
     transform: translateY(-3px);
     box-shadow: 0 9px 0 rgba(0,0,0,0.25);
   }
-  .practice-btn .pt-icon{ font-size:3rem; }
+  .practice-btn .pt-icon{ width:3rem; height:3rem; }
   .practice-btn .pt-label{
     font-family:'Bangers', cursive;
     font-size:1.3rem;
@@ -496,7 +505,7 @@
 <div class="page">
 
   <div class="logo-wrap">
-    <div class="logo stroke-lg"><span class="logo-icon">🎸</span>GUITARCADIA</div>
+    <div class="logo stroke-lg"><img class="logo-icon" src="assets/shared/logo.png" alt="Guitarcadia">GUITARCADIA</div>
   </div>
   <div class="logo-note">— swap for your exported logo PNG —</div>
 
@@ -574,17 +583,21 @@
 
 const SHEET_ID = "1ywTpWkv7Bg9ZygvvZfYnOJh1LpjT6CbIEqEIy-GFyiU";
 
+// asset paths
+const SHARED = "assets/shared/";
+const STUDENTS_DIR = "assets/students/";
+
 // Fixed UI icons — these aren't stored per-student in the sheet,
-// they're just the constant symbols for each stat/currency.
+// they're just the constant image files for each stat/currency.
 const STAT_META = {
-  health:  { emoji:"❤️", name:"Health" },
-  shields: { emoji:"🛡️", name:"Shields" },
-  power:   { emoji:"⚡", name:"Power" }
+  health:  { icon: SHARED + "icon_health.png",  name:"Health" },
+  shields: { icon: SHARED + "icon_shields.png", name:"Shields" },
+  power:   { icon: SHARED + "icon_power.png",   name:"Power" }
 };
 const CURRENCY_META = {
-  fragments: { emoji:"🔷", name:"Golden Fragments" },
-  chests:    { emoji:"🎁", name:"Golden Pick Chests" },
-  picks:     { emoji:"🪙", name:"Golden Picks" }
+  fragments: { icon: SHARED + "icon_fragments.png", name:"Golden Fragments" },
+  chests:    { icon: SHARED + "icon_chests.png",     name:"Golden Pick Chests" },
+  picks:     { icon: SHARED + "icon_picks.png",      name:"Golden Picks" }
 };
 const SKILL_META = [
   { key:"chords",      name:"Chords",      color:"var(--c-chords)" },
@@ -599,7 +612,6 @@ const SKILL_META = [
   { key:"production",  name:"Production",  color:"var(--c-production)" }
 ];
 const TIER_LABELS = { wood:"Wood Tier", iron:"Iron Tier", bronze:"Bronze Tier", silver:"Silver Tier", gold:"Gold Tier" };
-const AVATAR_PLACEHOLDER_EMOJI = "🧑‍🎤"; // shown until real avatar_file images are wired in
 
 // ---------- fixed column order, matching the Students/Songs tabs exactly ----------
 const STUDENT_FIELDS = [
@@ -641,7 +653,7 @@ function buildStudentObject(row, songRows){
     stats[key] = {
       cur: Number(row[`${key}_cur`]) || 0,
       max: Number(row[`${key}_max`]) || 0,
-      emoji: STAT_META[key].emoji,
+      icon: STAT_META[key].icon,
       name: STAT_META[key].name
     };
   });
@@ -650,7 +662,7 @@ function buildStudentObject(row, songRows){
   Object.keys(CURRENCY_META).forEach(key => {
     currencies[key] = {
       val: Number(row[key]) || 0,
-      emoji: CURRENCY_META[key].emoji,
+      icon: CURRENCY_META[key].icon,
       name: CURRENCY_META[key].name
     };
   });
@@ -668,12 +680,17 @@ function buildStudentObject(row, songRows){
     status: (s.status || "learning").toLowerCase()
   }));
 
+  const studentId = (row.student_id || "").toLowerCase().trim();
+  const avatarSrc = row.avatar_file
+    ? `${STUDENTS_DIR}${studentId}/${row.avatar_file}`
+    : null;
+
   return {
     name: row.name,
     totalLevel: Number(row.total_level) || 0,
     prestigeLevel: Number(row.prestige_level) || 0,
     prestigeTier: (row.prestige_tier || "wood").toLowerCase(),
-    avatarEmoji: AVATAR_PLACEHOLDER_EMOJI, // swap for real image once avatar_file is wired in
+    avatarSrc,
     stats,
     currencies,
     repertoire,
@@ -696,7 +713,7 @@ function render(s){
   // stats
   const statsHTML = Object.values(s.stats).map(st => `
     <div class="stat-block">
-      <div class="emoji">${st.emoji}</div>
+      <div class="emoji"><img class="icon-img" src="${st.icon}" alt="${st.name}"></div>
       <div>
         <div class="stat-name">${st.name}</div>
         <div class="stat-val">${st.cur}/${st.max}</div>
@@ -708,7 +725,7 @@ function render(s){
   // currencies
   const curHTML = Object.values(s.currencies).map(c => `
     <div class="currency-chip">
-      <div class="emoji">${c.emoji}</div>
+      <div class="emoji"><img class="icon-img" src="${c.icon}" alt="${c.name}"></div>
       <div>
         <div class="cur-val">${c.val}</div>
         <span class="cur-name">${c.name}</span>
@@ -730,7 +747,9 @@ function render(s){
   document.getElementById('songList').innerHTML = songHTML;
 
   // avatar
-  document.getElementById('avatarFrame').textContent = s.avatarEmoji;
+  document.getElementById('avatarFrame').innerHTML = s.avatarSrc
+    ? `<img src="${s.avatarSrc}" alt="${s.name}'s avatar">`
+    : `🧑‍🎤`;
 
   // skills — total
   document.getElementById('skTotalNum').textContent = s.totalLevel;
@@ -756,7 +775,7 @@ function render(s){
   // let's practice
   document.getElementById('practiceSingle').innerHTML = `
     <a class="practice-btn" href="${s.driveFolder.url}" target="_blank" rel="noopener">
-      <div class="pt-icon">📁</div>
+      <div class="pt-icon"><img class="icon-img" src="${SHARED}icon_practice_folder.png" alt="Practice folder"></div>
       <div class="pt-label">${s.driveFolder.label}</div>
       <div class="pt-sub">${s.name}'s Guitarcadia Drive</div>
     </a>
