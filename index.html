@@ -89,7 +89,6 @@
   }
   .logo .logo-icon{ width:150px; height:150px; object-fit:contain; filter: drop-shadow(2px 2px 0 var(--crimson-deep)); }
   .icon-img{ display:block; object-fit:contain; }
-  .stat-block .emoji img{ width:28px; height:28px; object-fit:contain; }
   .currency-chip .emoji img{ width:28px; height:28px; object-fit:contain; }
   .practice-btn .pt-icon img{ width:100%; height:100%; object-fit:contain; }
 
@@ -182,37 +181,6 @@
     letter-spacing:1.5px;
     color: rgba(255,255,255,0.85);
     font-weight:700;
-  }
-
-  /* ---------- STATS ---------- */
-  .stats-row{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-  }
-  .stat-block{
-    flex:1;
-    min-width:140px;
-    background: rgba(0,0,0,0.06);
-    border:2px solid var(--gold);
-    border-radius:12px;
-    padding:10px 14px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  .stat-block .emoji{ width:1.6rem; height:1.6rem; }
-  .stat-block .stat-name{
-    font-size:0.65rem;
-    text-transform:uppercase;
-    letter-spacing:1px;
-    opacity:0.65;
-  }
-  .stat-block .stat-val{
-    font-family:'Space Mono', monospace;
-    font-weight:700;
-    font-size:1.05rem;
-    color: var(--crimson-deep);
   }
 
   /* ---------- CURRENCIES ---------- */
@@ -452,6 +420,71 @@
     font-family:'Space Mono', monospace;
   }
 
+
+  /* ---------- GUITARCADE ---------- */
+  .arcade-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+    gap:16px;
+  }
+  .arcade-card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    text-align:center;
+    text-decoration:none;
+    color:var(--ink);
+    background:linear-gradient(160deg,var(--gold-bright),var(--gold));
+    border:3px solid var(--crimson-main);
+    border-radius:18px;
+    padding:18px 16px;
+    box-shadow:0 6px 0 rgba(0,0,0,0.25);
+    transition:transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  a.arcade-card:hover{ transform:translateY(-3px); box-shadow:0 9px 0 rgba(0,0,0,0.25); }
+  .arcade-card .ac-icon{
+    width:84px; height:84px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:3rem;
+  }
+  .arcade-card .ac-icon img{ width:100%; height:100%; object-fit:contain; }
+  .arcade-card .ac-title{
+    font-family:'Bangers', cursive;
+    font-size:1.3rem;
+    letter-spacing:0.5px;
+    line-height:1.1;
+  }
+  .arcade-card .ac-tag{ font-size:0.78rem; opacity:0.8; }
+  .arcade-card .ac-skills{ display:flex; flex-wrap:wrap; gap:5px; justify-content:center; }
+  .arcade-card .ac-skill{
+    font-size:0.58rem;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    font-weight:700;
+    color:#fff;
+    padding:2px 8px;
+    border-radius:20px;
+    text-shadow:0 1px 1px rgba(0,0,0,0.5);
+  }
+  .arcade-card .ac-state{
+    margin-top:auto;
+    font-family:'Space Mono', monospace;
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-weight:700;
+    color:var(--crimson-deep);
+  }
+  .arcade-card.is-off{
+    background:linear-gradient(160deg,#cfcfcf,#9c9c9c);
+    border-color:#6d6d6d;
+    cursor:default;
+  }
+  .arcade-card.is-off .ac-icon{ filter:grayscale(1); opacity:0.6; }
+  .arcade-card.is-off .ac-state{ color:#444; }
+  .arcade-empty{ font-size:0.9rem; opacity:0.7; }
+
   @media (max-width:760px){
     .row-2{ grid-template-columns: 1fr; }
   }
@@ -484,17 +517,10 @@
     </div>
   </div>
 
-  <!-- STATS & CURRENCIES -->
-  <div class="row-2">
-    <div class="panel">
-      <div class="panel-title stroke-lg">Stats</div>
-      <div class="stats-row" id="statsRow"></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title stroke-lg">Currencies</div>
-      <div class="currency-row" id="currencyRow"></div>
-    </div>
+  <!-- CURRENCIES -->
+  <div class="panel">
+    <div class="panel-title stroke-lg">Currencies</div>
+    <div class="currency-row" id="currencyRow"></div>
   </div>
 
   <!-- AVATAR & SKILLS -->
@@ -502,6 +528,7 @@
     <div class="avatar-banner">
       <div class="panel-title stroke-lg">Avatar</div>
       <div class="avatar-frame" id="avatarFrame"></div>
+      <div class="location-tag">Location: Default Studio</div>
     </div>
 
     <div class="panel">
@@ -527,6 +554,12 @@
     </div>
   </div>
 
+  <!-- GUITARCADE -->
+  <div class="panel">
+    <div class="panel-title stroke-lg">Guitarcade</div>
+    <div class="arcade-grid" id="arcadeGrid"></div>
+  </div>
+
 </div>
 
 
@@ -548,12 +581,7 @@ const SHARED = "assets/shared/";
 const STUDENTS_DIR = "assets/students/";
 
 // Fixed UI icons — these aren't stored per-student in the sheet,
-// they're just the constant image files for each stat/currency.
-const STAT_META = {
-  health:  { icon: SHARED + "icon_health.png",  name:"Health" },
-  shields: { icon: SHARED + "icon_shields.png", name:"Shields" },
-  power:   { icon: SHARED + "icon_power.png",   name:"Power" }
-};
+// they're just the constant image files for each currency.
 const CURRENCY_META = {
   fragments: { icon: SHARED + "icon_fragments.png", name:"Golden Fragments" },
   chests:    { icon: SHARED + "icon_chests.png",     name:"Golden Pick Chests" },
@@ -576,7 +604,6 @@ const TIER_LABELS = { wood:"Wood Tier", iron:"Iron Tier", bronze:"Bronze Tier", 
 // ---------- fixed column order, matching the Students/Songs tabs exactly ----------
 const STUDENT_FIELDS = [
   "student_id","name","total_level","prestige_level","prestige_tier","avatar_file",
-  "health_cur","health_max","shields_cur","shields_max","power_cur","power_max",
   "fragments","chests","picks",
   "chords_level","chords_score","arpeggios_level","arpeggios_score",
   "scales_level","scales_score","lead_level","lead_score",
@@ -586,6 +613,9 @@ const STUDENT_FIELDS = [
   "drive_folder_url"
 ];
 const SONG_FIELDS = ["student_id","title","artist","status"];
+// Guitarcade tab: one shared list of mini-games (not per student). Data starts row 2.
+const GAME_FIELDS = ["game_id","order","title","tagline","skills","icon_file","url","status","unlock_total_level"];
+const ARCADE_DIR = SHARED + "guitarcade/";
 
 // ---------- fetch a tab and map its columns positionally (ignores header labels entirely) ----------
 async function fetchSheetRows(tabName, startRow, fieldOrder){
@@ -608,16 +638,6 @@ async function fetchSheetRows(tabName, startRow, fieldOrder){
 
 // ---------- turn a flat sheet row (+ matching song rows) into the shape render() expects ----------
 function buildStudentObject(row, songRows){
-  const stats = {};
-  Object.keys(STAT_META).forEach(key => {
-    stats[key] = {
-      cur: Number(row[`${key}_cur`]) || 0,
-      max: Number(row[`${key}_max`]) || 0,
-      icon: STAT_META[key].icon,
-      name: STAT_META[key].name
-    };
-  });
-
   const currencies = {};
   Object.keys(CURRENCY_META).forEach(key => {
     currencies[key] = {
@@ -651,7 +671,6 @@ function buildStudentObject(row, songRows){
     prestigeLevel: Number(row.prestige_level) || 0,
     prestigeTier: (row.prestige_tier || "wood").toLowerCase(),
     avatarSrc,
-    stats,
     currencies,
     repertoire,
     skills,
@@ -669,18 +688,6 @@ function render(s){
   document.getElementById('pcName').textContent = s.name;
   document.getElementById('pcTier').textContent = TIER_LABELS[s.prestigeTier];
   document.getElementById('playerCard').classList.add('tier-' + s.prestigeTier);
-
-  // stats
-  const statsHTML = Object.values(s.stats).map(st => `
-    <div class="stat-block">
-      <div class="emoji"><img class="icon-img" src="${st.icon}" alt="${st.name}"></div>
-      <div>
-        <div class="stat-name">${st.name}</div>
-        <div class="stat-val">${st.cur}/${st.max}</div>
-      </div>
-    </div>
-  `).join('');
-  document.getElementById('statsRow').innerHTML = statsHTML;
 
   // currencies
   const curHTML = Object.values(s.currencies).map(c => `
@@ -742,6 +749,43 @@ function render(s){
   `;
 }
 
+// ---------- Guitarcade: game cards ----------
+function gameLink(url, studentId){
+  // the game gets ?student=<id> so it knows whose practice this is
+  return url + (url.includes('?') ? '&' : '?') + 'student=' + encodeURIComponent(studentId);
+}
+function renderArcade(games, studentId, totalLevel){
+  const grid = document.getElementById('arcadeGrid');
+  const list = games
+    .filter(g => (g.status || '').toLowerCase().trim() !== 'hidden' && g.title)
+    .sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0));
+  if(!list.length){ grid.innerHTML = '<div class="arcade-empty">New games are on the way!</div>'; return; }
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  grid.innerHTML = list.map(g => {
+    const status = (g.status || 'coming-soon').toLowerCase().trim();
+    const unlock = Number(g.unlock_total_level) || 0;
+    const locked = totalLevel < unlock;
+    const playable = status === 'live' && !locked && g.url;
+    const chips = String(g.skills || '').split(';').map(x => x.trim().toLowerCase()).filter(Boolean).map(k => {
+      const m = SKILL_META.find(sk => sk.key === k);
+      return m ? `<span class="ac-skill" style="background:${m.color}">${esc(m.name)}</span>` : '';
+    }).join('');
+    const icon = g.icon_file
+      ? `<img src="${ARCADE_DIR}${esc(g.icon_file)}" alt="" onerror="this.replaceWith(document.createTextNode('🎮'))">`
+      : '🎮';
+    const state = playable ? 'Play now' : (status !== 'live' ? 'Coming soon' : `Unlocks at Total Lvl ${unlock}`);
+    const inner = `
+      <div class="ac-icon">${icon}</div>
+      <div class="ac-title">${esc(g.title)}</div>
+      <div class="ac-tag">${esc(g.tagline)}</div>
+      <div class="ac-skills">${chips}</div>
+      <div class="ac-state">${state}</div>`;
+    return playable
+      ? `<a class="arcade-card" href="${esc(gameLink(g.url, studentId))}" target="_blank" rel="noopener">${inner}</a>`
+      : `<div class="arcade-card is-off">${inner}</div>`;
+  }).join('');
+}
+
 async function init(){
   const params = new URLSearchParams(window.location.search);
   const studentId = (params.get('student') || 'rafi').toLowerCase().trim(); // defaults to rafi for easy testing
@@ -765,6 +809,11 @@ async function init(){
     const matchingSongs = songRows.filter(s => (s.student_id || '').toLowerCase().trim() === studentId);
     const STUDENT = buildStudentObject(row, matchingSongs);
     render(STUDENT);
+
+    // Guitarcade is loaded separately so a missing/broken tab never breaks the rest of the profile
+    fetchSheetRows('Guitarcade', 2, GAME_FIELDS)
+      .then(games => renderArcade(games, studentId, STUDENT.totalLevel))
+      .catch(() => { document.getElementById('arcadeGrid').innerHTML = '<div class="arcade-empty">The Guitarcade is warming up. Check back soon!</div>'; });
 
   } catch(err){
     document.querySelector('.page').innerHTML =

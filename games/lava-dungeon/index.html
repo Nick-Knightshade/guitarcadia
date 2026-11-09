@@ -1,0 +1,802 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lava Dungeon Map Maze</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Lilita+One&family=Comic+Neue:wght@400;700&display=swap">
+<style>
+/* Layout: scroll-banner title, status chips, bubbling lava fretboard grid, parchment panel beneath, chord pop-up on top. Single dark look by choice. */
+:root{
+  --ink:#1a0a05; --lava:#d8431a; --ember:#ffb43a; --parch:#e9cf9b; --parch-ink:#2a1608; --cool:#2f7d8c; --trail:#7bdc6a;
+  --display:'Bangers','Impact',sans-serif; --note:'Lilita One','Arial Black',sans-serif; --body:'Comic Neue','Comic Sans MS',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:auto}
+body{background:var(--ink);color:var(--parch);font-family:var(--body);font-size:17px;margin:0;
+  padding-block:16px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.banner{background:var(--parch);color:var(--parch-ink);font-family:var(--display);font-size:clamp(1.6rem,5vw,2.6rem);
+  padding:6px 22px;border-radius:4px;box-shadow:0 4px 0 #7a5a2c;align-self:flex-start;letter-spacing:.04em}
+.bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.timer{font-variant-numeric:tabular-nums;font-family:var(--note);font-size:1.5rem;color:var(--ember)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-family:var(--note);font-size:1.05rem;padding:2px 12px;border-radius:99px;box-shadow:inset 0 0 0 2px #7a5a2c;opacity:.7}
+.chip.on{background:var(--ember);color:var(--parch-ink);box-shadow:none;opacity:1}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--parch);color:var(--parch-ink);border:0;border-radius:4px;padding:8px 14px;font-weight:700;box-shadow:0 3px 0 #7a5a2c}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #7a5a2c}
+.btn.ghost{background:transparent;color:var(--parch);box-shadow:inset 0 0 0 2px var(--parch)}
+.btn.dark{background:transparent;color:var(--parch-ink);box-shadow:inset 0 0 0 2px var(--parch-ink)}
+.btn.go{background:#3a2210;color:var(--parch);box-shadow:0 3px 0 #1a0a05;padding:12px 20px;font-size:1.1rem}
+button:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
+.lava{position:relative;padding:22px 10px 10px;border-radius:6px;
+  background:radial-gradient(circle at 20% 30%,#ff7a2a 0,transparent 45%),radial-gradient(circle at 80% 70%,#ffae2a 0,transparent 40%),linear-gradient(135deg,#a3200c,#e0501c 50%,#9c1b0a);
+  background-size:200% 200%;animation:flow 14s ease-in-out infinite alternate;box-shadow:0 0 30px #d8431a66}
+@keyframes flow{to{background-position:100% 100%}}
+.bub{position:absolute;inset:0;overflow:hidden;border-radius:6px;pointer-events:none}
+.b{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a3a66,#a82e0a99 65%);box-shadow:inset 0 0 0 2px #8a2506aa;animation:bpop var(--d) ease-out forwards}
+@keyframes bpop{0%{transform:scale(.3);opacity:0}55%{transform:scale(1);opacity:.85}80%{transform:scale(1.12);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+.board{position:relative;z-index:1;display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px}
+.lab{display:flex;align-items:center;justify-content:center;font-family:var(--note);font-size:.95rem;color:#fff;min-height:1.2rem}
+.cell{aspect-ratio:1;border-radius:4px;background:#00000026;display:flex;align-items:center;justify-content:center;position:relative;
+  font-family:var(--note);font-size:clamp(.75rem,2.6vw,1.4rem);color:#fff;min-width:0}
+.cell .t{position:relative;z-index:2}
+/* floating stones: your stone art, tinted per state (--tint), rim glow colour per state (--ring), drop shadow, gentle bob */
+.cell.path{--ring:#ff6a3a;--tint:sepia(.7) hue-rotate(-15deg) saturate(1.8) brightness(.95);filter:drop-shadow(0 0 3px var(--ring)) drop-shadow(0 5px 3px #000a);background:none}
+.cell.path.q{color:var(--ember)}
+.cell.path.cool{--ring:var(--cool);--tint:sepia(1) hue-rotate(150deg) saturate(2.4) brightness(1.2);color:#eafcff}
+.cell.path.walked{--ring:var(--trail);--tint:sepia(1) hue-rotate(75deg) saturate(2.2) brightness(1.05)}
+/* gold stroke around the stone's rough edge (four offset shadows make an outline), brighter and pulsing on the current/destination stone */
+.cell.path.route{--ring:var(--ember);filter:drop-shadow(1.5px 0 0 #ffd84a) drop-shadow(-1.5px 0 0 #ffd84a) drop-shadow(0 1.5px 0 #ffd84a) drop-shadow(0 -1.5px 0 #ffd84a) drop-shadow(0 5px 3px #000a)}
+.cell.path.dest,.cell.path.active{--ring:var(--ember);filter:drop-shadow(2px 0 0 #ffd84a) drop-shadow(-2px 0 0 #ffd84a) drop-shadow(0 2px 0 #ffd84a) drop-shadow(0 -2px 0 #ffd84a) drop-shadow(0 0 10px #ffe98a) drop-shadow(0 5px 3px #000a);animation:glowp .9s ease-in-out infinite alternate}
+.target{position:absolute;inset:-14%;z-index:4;pointer-events:none;filter:drop-shadow(0 0 3px #000) drop-shadow(0 0 8px #ffd84a);animation:ping 1.3s ease-in-out infinite alternate}
+.target svg{display:block;width:100%;height:100%;animation:spin 9s linear infinite}
+@keyframes ping{from{transform:scale(.92);opacity:.8}to{transform:scale(1.07);opacity:1}}
+.fl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;animation:float 2.8s ease-in-out infinite alternate;animation-delay:var(--dl,0s)}
+.rock{position:absolute;inset:0;z-index:0;width:100%;height:100%;filter:var(--tint);pointer-events:none;user-select:none}
+.cell .t{text-shadow:0 1px 2px #000d;white-space:nowrap}
+.cell .t.acc{font-size:.7em;line-height:.95;text-align:center;white-space:normal}
+@keyframes float{from{transform:translateY(-1.5px)}to{transform:translateY(2px)}}
+@keyframes glowp{from{filter:drop-shadow(2px 0 0 #ffd84a) drop-shadow(-2px 0 0 #ffd84a) drop-shadow(0 2px 0 #ffd84a) drop-shadow(0 -2px 0 #ffd84a) drop-shadow(0 0 4px #fff2a0) drop-shadow(0 5px 3px #000a)}to{filter:drop-shadow(2px 0 0 #ffd84a) drop-shadow(-2px 0 0 #ffd84a) drop-shadow(0 2px 0 #ffd84a) drop-shadow(0 -2px 0 #ffd84a) drop-shadow(0 0 14px #ffe98a) drop-shadow(0 5px 3px #000a)}}
+.cell.shake{animation:shake .3s}
+.cell.poi .t{position:absolute;right:2px;bottom:1px;font-size:.62em;background:#000b;padding:0 3px;border-radius:3px}
+.ico{position:absolute;inset:6%;z-index:1;display:block}
+.ico svg,.ico img{width:100%;height:100%;display:block;object-fit:contain;pointer-events:none;user-select:none}
+.ico.gone{opacity:.2}
+/* glows on your art: drop-shadow follows each image's outline, so the glow hugs the shape */
+.ico.zap img,.ico.skel img{animation:redpulse 1s ease-in-out infinite alternate}
+.ico.skel img{animation-duration:1.3s}
+.ico.zap,.ico.skel,.ico.chest{transform:translateY(-20%)}   /* stand on the stone rather than cover it */
+.ico.keyico img,.ico.chest img{animation:goldpulse 1.6s ease-in-out infinite alternate}
+@keyframes redpulse{from{filter:drop-shadow(0 0 3px #ff3a2a) brightness(.95);transform:scale(.97)}to{filter:drop-shadow(0 0 10px #ff3a2a) brightness(1.3);transform:scale(1.05)}}
+@keyframes goldpulse{from{filter:drop-shadow(0 0 2px #ffd34a) brightness(1)}to{filter:drop-shadow(0 0 8px #ffd34a) brightness(1.15)}}
+@keyframes eye{from{opacity:.7}to{opacity:1}}
+.portalimg{position:absolute;left:-6%;top:-6%;width:112%;height:112%;z-index:0;pointer-events:none;user-select:none;filter:drop-shadow(0 0 8px #3ff);animation:spin 16s linear infinite}
+.pick{position:absolute;left:50%;top:-40%;width:48%;z-index:6;filter:drop-shadow(0 2px 2px #000b);animation:pickbob .8s ease-in-out infinite alternate}
+.pick img{display:block;width:100%;height:auto}
+@keyframes pickbob{from{transform:translateX(-50%) translateY(0)}to{transform:translateX(-50%) translateY(-5px)}}
+.hp{display:flex;gap:6px;align-items:center;justify-content:center;font-weight:700}
+.hp i{width:18px;height:18px;border-radius:50%;background:#e02a1a;box-shadow:0 0 6px #ff3322}
+.hp i.off{background:#4a3a3a;box-shadow:none}
+.steps.dots span{width:34px;height:34px;display:grid;place-items:center;padding:0;border-radius:50%}
+.steps span.on{background:var(--lava)}
+.steps span.ok{background:#2f7d3a}
+.drum{display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-family:var(--note)}
+.drum input{flex:1 1 140px;max-width:260px;accent-color:var(--ember)}
+.drum b{color:var(--ember)}
+.drum #beatName{opacity:.85}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{from{filter:brightness(.9)}to{filter:brightness(1.35)}}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes rise{from{transform:translateY(24px) scale(.95);opacity:0}}
+.panel{background:var(--parch);color:var(--parch-ink);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 0 #7a5a2c}
+.prompt{font-family:var(--display);letter-spacing:.03em;font-size:clamp(1.3rem,4vw,1.9rem);line-height:1.1;text-wrap:balance;margin:0}
+.sub{margin:0;opacity:.9}
+.big{font-size:1.15rem}
+.keys{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.key{background:#3a2210;color:var(--parch);border:0;border-radius:4px;padding:12px 0;font-family:var(--note);font-size:1.3rem}
+.key{white-space:nowrap;font-size:clamp(.95rem,3.4vw,1.3rem)}
+.key:active{background:var(--lava)}
+.feedback{min-height:1.4em;font-weight:700;margin:0}
+.feedback.bad{color:#b3261a}
+.seq{display:flex;flex-wrap:wrap;gap:6px}
+.seq span.gap{background:none;color:var(--ember);padding:2px 0;font-weight:700}
+.seq span{background:#3a2210;color:var(--parch);font-family:var(--note);border-radius:4px;padding:2px 9px;font-size:1.1rem}
+.done pre{margin:0;white-space:pre-wrap;font-family:var(--body);background:#00000014;padding:10px;border-radius:4px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.orbs{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center}
+.orb{width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;animation:pulse 1.2s ease-in-out infinite alternate}
+.orb b{font-family:var(--note);font-size:2.2rem;line-height:1}
+.orb span{font-size:.78rem;font-weight:700;line-height:1.1}
+.orb.grey{background:radial-gradient(circle at 35% 30%,#f2f2f2,#9a9a9a 45%,#4b4b4b);box-shadow:0 0 20px #bbb9;color:#222}
+.orb.purple{background:radial-gradient(circle at 35% 30%,#e7b8ff,#9a3fe0 45%,#4a1488);box-shadow:0 0 20px #b45cffcc}
+.orb.red{background:radial-gradient(circle at 35% 30%,#ffb4aa,#e02a1a 45%,#5a0804);box-shadow:0 0 20px #ff4a3acc}
+.orb.green{background:radial-gradient(circle at 35% 30%,#efffd0,#9be05a 45%,#3f7d1c);box-shadow:0 0 20px #b6f07acc;color:#143006}
+.orb.blue{background:radial-gradient(circle at 35% 30%,#9db8ff,#1f3fa8 45%,#0b1a55);box-shadow:0 0 20px #3a5fffcc}
+.frag{display:flex;align-items:center;justify-content:center;gap:10px;font-family:var(--display);font-size:1.6rem}
+.frag svg{width:48px;height:48px;filter:drop-shadow(0 0 8px #ffd21a);animation:pulse 1.2s ease-in-out infinite alternate}
+.pop{position:fixed;inset:0;background:#000c;display:flex;align-items:flex-start;justify-content:center;z-index:50;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.pop[hidden],.steps[hidden],.hp[hidden]{display:none}
+.card{margin:auto;background:var(--parch);color:var(--parch-ink);border-radius:8px;padding:20px;max-width:640px;width:100%;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;box-shadow:0 6px 0 #7a5a2c,0 0 40px #ff4a3a88;animation:rise .35s ease-out}
+.tabwrap{width:100%;overflow-x:auto;background:#f7e6b8;border:2px solid #7a5a2c;border-radius:6px;padding:4px}
+.tabwrap svg{display:block;min-width:470px;width:100%;height:auto}
+.hear{font-size:1rem;padding:6px 16px}
+.hear[hidden]{display:none}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.logo{height:74px;width:auto;display:block;filter:drop-shadow(0 2px 3px #0008)}
+.chords{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.cw{display:flex;flex-direction:column;align-items:center;font-family:var(--note);font-size:1.4rem;line-height:1.1}
+.cw svg.chord{width:110px;height:auto}
+.chords.two .cw svg.chord{width:150px}
+.beats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.beat{background:#3a2210;color:var(--parch);border-radius:6px;padding:8px 10px;min-width:58px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.beat.x{background:#6a2a22}
+.beat .ar{display:flex;gap:4px}
+.beat svg{width:14px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.beat small{font-size:.72rem;opacity:.85}
+.steps{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;font-family:var(--note);font-size:1.15rem}
+.steps span{background:#3a2210;color:var(--parch);padding:2px 12px;border-radius:99px}
+</style>
+
+<div class="wrap">
+  <div class="brand"><div class="banner">Lava Dungeon – Map Maze</div><img class="logo" src="art/logo.png" alt="Guitarcadia" draggable="false"></div>
+  <div class="bar">
+    <div class="timer" id="timer" aria-label="Practice time">00:00</div>
+    <div class="chips" id="hud"></div>
+    <div class="row"><button class="btn ghost" id="mute" type="button">Sound on</button><button class="btn" id="newpath" type="button">New path</button></div>
+  </div>
+  <div class="drum">
+    <button class="btn ghost" id="drumBtn" type="button" aria-pressed="true">Drums on</button>
+    <button class="btn ghost" id="lavaBtn" type="button" aria-pressed="true">Lava ambience on</button>
+    <label for="bpm">Tempo <b id="bpmv">60</b> BPM</label>
+    <input type="range" id="bpm" min="60" max="120" step="1" value="60">
+    <span id="beatName"></span>
+  </div>
+  <div class="lava">
+    <div class="bub" id="bub" aria-hidden="true"></div>
+    <div class="board" id="board" role="img" aria-label="Fretboard lava map with six string rows and frets 0 to 12, with a portal, two red power orbs, a skeleton, a key and a chest"></div>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+
+<div class="pop" id="pop" role="dialog" aria-modal="true" aria-labelledby="popT" hidden>
+  <div class="card">
+    <p class="sub big" id="popHead" style="font-weight:700"></p>
+    <h2 class="prompt" id="popT"></h2>
+    <div class="steps" id="popSteps"></div>
+    <div class="hp" id="popHp" hidden></div>
+    <div id="popBody"></div>
+    <button class="btn dark hear" id="popHear" type="button" hidden>Hear it</button>
+    <p class="sub big" id="popTxt"></p>
+    <button class="btn go" id="popDone" type="button">I played it</button>
+  </div>
+</div>
+
+<script>
+const OPEN_F=[329.63,246.94,196.00,146.83,110.00,82.41];   // top row (high E) to bottom row (low E), in Hz
+const OPEN_N=[4,11,7,2,9,4];                                // same rows as note numbers
+const NOTES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const COLS=13, ROWS=6;
+const $=id=>document.getElementById(id);
+// ---GEN---
+const D8=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const inb=(r,c)=>r>=0&&r<ROWS&&c>=0&&c<COLS;
+const cheb=(a,b)=>Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]));
+// a new tile may only touch the tiles whose indexes are in `ok`
+function free(t,all,ok){
+  for(let i=0;i<all.length;i++){
+    if(all[i][0]===t[0]&&all[i][1]===t[1]) return false;
+    if(cheb(all[i],t)<=1&&!ok.has(i)) return false;
+  }
+  return true;
+}
+// gap moves: skip 1 stone along a fret (horizontal), or 1 string (vertical / diagonal)
+const JUMPS=[[0,2],[0,-2],[2,0],[-2,0],[2,1],[-2,1],[2,-1],[-2,-1],[2,2],[-2,2],[2,-2],[-2,-2]];
+const isGap=(a,b)=>cheb(a,b)>1;
+// g = how many gap moves this main route must contain (0-4)
+function growMain(p,minLen,maxLen,bud,g,used=0){
+  if(--bud.n<0) return false;
+  const last=p[p.length-1], steps=p.length-1;
+  if(steps>=minLen&&last[1]>=11&&used===g) return true;
+  if(steps>=maxLen) return false;
+  const ok=new Set([p.length-1]);
+  const mk=(L,j)=>L.map(([dr,dc])=>({t:[last[0]+dr,last[1]+dc],s:Math.random()+(dc>0?.7:dc===0?.3:0),j})).filter(o=>inb(o.t[0],o.t[1])).sort((x,y)=>y.s-x.s);
+  const norm=mk(D8,0), jump=used<g&&steps>0?mk(JUMPS,1):[];   // the first stone after the portal is never a jump, so the portal always has a neighbour
+  const rem=g-used, pj=rem>0?Math.min(.9,rem/Math.max(rem,minLen+1-steps)):0;
+  const cand=Math.random()<pj?jump.concat(norm):norm.concat(jump);
+  for(const o of cand){
+    if(!free(o.t,p,ok)) continue;
+    p.push(o.t);if(growMain(p,minLen,maxLen,bud,g,used+o.j)) return true;p.pop();
+    if(bud.n<0) return false;
+  }
+  return false;
+}
+function growBranch(all,start,k,L,bud,gb){
+  if(--bud.n<0) return false;
+  const len=all.length-start;
+  if(len===L) return true;
+  const last=len===0?all[k]:all[all.length-1];
+  const ok=len===0?new Set([k-1,k,k+1]):new Set([all.length-1]);
+  const norm=shuffle(D8.slice()).map(d=>[d,0]), jump=gb.n>0?shuffle(JUMPS.slice()).map(d=>[d,1]):[];
+  const cand=Math.random()<.04?jump.concat(norm):norm.concat(jump);
+  for(const [[dr,dc],j] of cand){
+    const t=[last[0]+dr,last[1]+dc];
+    if(!inb(t[0],t[1])||!free(t,all,ok)) continue;
+    all.push(t);gb.n-=j;if(growBranch(all,start,k,L,bud,gb)) return true;gb.n+=j;all.pop();
+    if(bud.n<0) return false;
+  }
+  return false;
+}
+// adds one branch off the main route; its end tile is at least half the route length (in tile hops) from both portal and chest
+function addBranch(all,par,N,minL,maxL,skipK,half=true,gb={n:0}){
+  const start=all.length;
+  for(const k of shuffle(Array.from({length:N-2},(_,i)=>i+1))){
+    if(skipK.includes(k)) continue;
+    const Lmin=half?Math.max(minL,Math.ceil(Math.abs(k-N/2))):minL;
+    for(const L of shuffle(Array.from({length:Math.max(0,Math.min(Lmin+3,maxL)-Lmin+1)},(_,i)=>Lmin+i))){
+      if(growBranch(all,start,k,L,{n:2000},gb)){
+        for(let m=0;m<L;m++) par.push(m===0?k:start+m-1);
+        return {k,L,start,end:start+L-1};
+      }
+    }
+  }
+  return null;
+}
+// tiles[0]=portal, tiles[1..N]=main route ending at the chest (index N); then orb A branch, orb B branch, key branch
+function genLayout(){
+  for(;;){
+    const main=[[Math.floor(Math.random()*ROWS),0]];
+    const G=Math.floor(Math.random()*4), g=Math.floor(Math.random()*(G+1));   // G gaps in the whole path, g of them on the main route
+    if(!growMain(main,16,22,{n:8000},g)) continue;
+    const N=main.length-1, par0=[-1];
+    for(let i=1;i<=N;i++) par0.push(i-1);
+    for(let a=0;a<8;a++){
+      const all=main.slice(), par=par0.slice();
+      const gb={n:G-g};
+      const orbA=addBranch(all,par,N,3,9,[],false,gb); if(!orbA) continue;
+      const orbB=addBranch(all,par,N,3,9,[orbA.k],false,gb); if(!orbB) continue;
+      const key=addBranch(all,par,N,4,10,[orbA.k,orbB.k],true,gb); if(!key) continue;
+      if(all.length<30||all.length>40) continue;
+      return {t:all,par,N,orbA,orbB,key,gaps:G-gb.n};
+    }
+  }
+}
+function treePath(par,a,b){
+  const anc=x=>{const r=[x];while(x>0){x=par[x];r.push(x)}return r};
+  const A=anc(a), B=anc(b), inB=new Set(B);
+  let i=0;while(!inB.has(A[i])) i++;
+  return A.slice(0,i+1).concat(B.slice(0,B.indexOf(A[i])).reverse());
+}
+// ---END GEN---
+const noteAt=([r,c])=>NOTES[(OPEN_N[r]+c)%12];
+const FLAT={'C#':'Db','D#':'Eb','F#':'Gb','G#':'Ab','A#':'Bb'};
+const disp=n=>FLAT[n]?n+'/'+FLAT[n]:n;
+const freqAt=([r,c])=>OPEN_F[r]*Math.pow(2,c/12);
+
+const CHORDS=[ // frets from low E to high E (-1 = not played), fingers 0 = open
+  {n:'C',f:[-1,3,2,0,1,0],g:[0,3,2,0,1,0]},{n:'A',f:[-1,0,2,2,2,0],g:[0,0,1,2,3,0]},
+  {n:'G',f:[3,2,0,0,0,3],g:[2,1,0,0,0,3]},{n:'E',f:[0,2,2,1,0,0],g:[0,2,3,1,0,0]},
+  {n:'D',f:[-1,-1,0,2,3,2],g:[0,0,0,1,3,2]},{n:'Am',f:[-1,0,2,2,1,0],g:[0,0,2,3,1,0]},
+  {n:'Dm',f:[-1,-1,0,2,3,1],g:[0,0,0,2,3,1]},{n:'Em',f:[0,2,2,0,0,0],g:[0,2,3,0,0,0]},
+  {n:'F',f:[-1,3,3,2,1,-1],g:[0,3,4,2,1,0]},
+  // open dominant 7ths (F7 is a barre chord)
+  {n:'A7',f:[-1,0,2,0,2,0],g:[0,0,2,0,3,0]},{n:'B7',f:[-1,2,1,2,0,2],g:[0,2,1,3,0,4]},
+  {n:'C7',f:[-1,3,2,3,1,0],g:[0,3,2,4,1,0]},{n:'D7',f:[-1,-1,0,2,1,2],g:[0,0,0,2,1,3]},
+  {n:'E7',f:[0,2,0,1,0,0],g:[0,2,0,1,0,0]},{n:'F7',f:[1,3,1,2,1,1],g:[1,3,1,2,1,1]},
+  {n:'G7',f:[3,2,0,0,0,1],g:[3,2,0,0,0,1]},
+  {n:'_'}
+];
+CHORDS.pop();
+// power chords for all 12 roots: E-string roots (E F F# G G#) and A-string roots (A A# B C C# D D#)
+const SHARPS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+for(const r of [0,1,2,3,4]){const n=SHARPS[(4+r)%12]+'5';CHORDS.push({n,f:[r,r+2,r+2,-1,-1,-1],g:[r?1:0,3,4,0,0,0]})}
+for(const r of [0,1,2,3,4,5,6]){const n=SHARPS[(9+r)%12]+'5';CHORDS.push({n,f:[-1,r,r+2,r+2,-1,-1],g:r?[0,1,3,4,0,0]:[0,0,3,4,0,0]})}
+// each progression: chords, key root (semitone, C=0) and mode for the riff/melody
+const PROGS=[
+ {c:['C','G','Am','F'],r:0,m:'maj'},{c:['G','D','Em','C'],r:7,m:'maj'},{c:['C','Am','F','G'],r:0,m:'maj'},{c:['G','Em','C','D'],r:7,m:'maj'},
+ {c:['Am','F','C','G'],r:9,m:'min'},{c:['Am','G','F','E'],r:9,m:'min'},{c:['Em','C','G','D'],r:4,m:'min'},{c:['Dm','F','C','Am'],r:2,m:'min'},{c:['C','F','G','Am'],r:0,m:'maj'},
+ {c:['C','A7','D7','G7'],r:0,m:'maj'},{c:['G','E7','A7','D7'],r:7,m:'maj'},{c:['Am','D7','G','C'],r:9,m:'min'},{c:['Em','A7','D','G'],r:4,m:'min'},{c:['Dm','G7','C','F'],r:0,m:'maj'},{c:['C','Am','D7','G7'],r:0,m:'maj'},
+ {c:['A7','D7','E7','G7'],r:9,m:'min'},{c:['E7','A7','B7','D7'],r:4,m:'min'},{c:['G7','C7','D7','F7'],r:7,m:'min'},{c:['D7','G7','A7','C7'],r:2,m:'min'}];
+// power-chord riffs in any of the 12 keys, built from semitone steps above the key root
+const PWR=[[0,3,5,7],[0,3,5,10],[0,10,5,7],[0,10,8,7],[0,5,10,7],[0,3,8,10],[0,5,3,7],[0,7,5,3]];
+function powerProg(){
+  const r=Math.floor(Math.random()*12), t=PWR[Math.floor(Math.random()*PWR.length)];
+  return {c:t.map(x=>SHARPS[(r+x)%12]+'5'),r,m:'min'};
+}
+// rule: no two chords in a progression share a root (C and C7, or Am and A, never together)
+const rootOf=n=>n.match(/^[A-G]#?/)[0];
+function newProg(){
+  const x=Math.random();
+  return x<.35?powerProg():PROGS[Math.floor(Math.random()*PROGS.length)];
+}
+const chordBy=n=>CHORDS.find(c=>c.n===n);
+function chordSVG(ch){
+  const fr=ch.f.filter(f=>f>0), base=Math.max(...fr)>5?Math.min(...fr):1;
+  let s='<svg class="chord" viewBox="0 0 120 150" role="img" aria-label="'+ch.n+' chord diagram" fill="none" stroke="#2a1608" stroke-width="1.5">';
+  for(let i=0;i<6;i++) s+='<line x1="'+(20+i*16)+'" y1="28" x2="'+(20+i*16)+'" y2="138"/>';
+  for(let j=0;j<=5;j++) s+='<line x1="20" y1="'+(28+j*22)+'" x2="100" y2="'+(28+j*22)+'"'+(j===0&&base===1?' stroke-width="5"':'')+'/>';
+  if(base>1) s+='<text x="103" y="44" font-size="11" font-weight="700" fill="#2a1608" stroke="none">'+base+'fr</text>';
+  ch.f.forEach((f,i)=>{
+    const x=20+i*16;
+    if(f<0) s+='<path d="M'+(x-4)+' 14l8 8M'+(x+4)+' 14l-8 8"/>';
+    else if(f===0) s+='<circle cx="'+x+'" cy="18" r="4"/>';
+    else s+='<circle cx="'+x+'" cy="'+(28+(f-base+.5)*22)+'" r="8" fill="#b3261a" stroke="none"/><text x="'+x+'" y="'+(28+(f-base+.5)*22+4)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" stroke="none">'+ch.g[i]+'</text>';
+  });
+  return s+'</svg>';
+}
+// ---- strumming pattern: 4 beats, each a quarter, eighth, triplet or sixteenth block; beat 2 or 4 may be an X (rest) ----
+const KINDS={Q:{lab:'quarter',o:[['d']]},E:{lab:'eighths',o:[['d','u'],['d','d']]},T:{lab:'triplets',o:[['d','d','d'],['d','u','d']]},S:{lab:'sixteenths',o:[['d','u','d','u']]}};
+function genPattern(){
+  const ks=['Q','E','T','S'];
+  const p=[0,1,2,3].map(()=>{const k=ks[Math.floor(Math.random()*4)],o=KINDS[k].o;return {k,a:o[Math.floor(Math.random()*o.length)]}});
+  const x=[null,1,3][Math.floor(Math.random()*3)];
+  if(x!==null) p[x]={k:'X',a:['x']};
+  return p;
+}
+const ARR={d:'<svg viewBox="0 0 12 20"><path d="M6 2v14M1.5 11L6 17l4.5-6"/></svg>',u:'<svg viewBox="0 0 12 20"><path d="M6 18V4M1.5 9L6 3l4.5 6"/></svg>',x:'<svg viewBox="0 0 12 20"><path d="M2 5l8 10M10 5L2 15"/></svg>'};
+const beatsHTML=p=>'<div class="beats" aria-label="Strumming pattern">'+p.map((b,i)=>
+  '<div class="beat'+(b.k==='X'?' x':'')+'"><div class="ar">'+b.a.map(a=>ARR[a]).join('')+'</div><small>'+(i+1)+' · '+(b.k==='X'?'rest':KINDS[b.k].lab)+'</small></div>').join('')+'</div>';
+const patText=p=>p.map(b=>b.k==='X'?'X':KINDS[b.k].lab+' '+b.a.map(a=>a==='d'?'D':'U').join('')).join(' | ');
+
+// ---- audio: plucked-string synthesis (Karplus-Strong) at the real pitch of the string and fret ----
+let ctx=null, sound=true; const bufs=new Map();
+const VOL=.75;   // master volume for every played note
+function ac(){ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();return ctx}
+function pluckBuf(f,dur,decay){
+  const key=f.toFixed(1)+'_'+dur+'_'+decay;
+  if(bufs.has(key)) return bufs.get(key);
+  const c=ac(), sr=c.sampleRate, n=Math.floor(sr*dur), N=Math.max(2,Math.round(sr/f));
+  const b=c.createBuffer(1,n,sr), d=b.getChannelData(0), ring=new Float32Array(N);
+  for(let i=0;i<N;i++) ring[i]=Math.random()*2-1;
+  let p=0;
+  for(let i=0;i<n;i++){const cur=ring[p];d[i]=cur;ring[p]=(cur+ring[(p+1)%N])*.5*decay;p=(p+1)%N}
+  for(let i=0;i<Math.min(n,400);i++) d[i]*=i/400;
+  bufs.set(key,b);return b;
+}
+function pluck(f,delay=0,vol=.5){
+  if(!sound) return;
+  try{const c=ac(),s=c.createBufferSource(),g=c.createGain();s.buffer=pluckBuf(f,1.8,.997);g.gain.value=vol*VOL;s.connect(g);g.connect(c.destination);s.start(c.currentTime+delay)}catch(e){}
+}
+function twang(f){   // two slightly clashing plucks whose pitch sags, like a slack string
+  if(!sound) return;
+  try{const c=ac(),t=c.currentTime;
+    [1.06,1.41].forEach((m,i)=>{const s=c.createBufferSource(),g=c.createGain();
+      s.buffer=pluckBuf(f*m,.7,.985);s.playbackRate.setValueAtTime(1,t);s.playbackRate.exponentialRampToValueAtTime(.82,t+.4);
+      g.gain.value=(.4-i*.1)*VOL;s.connect(g);g.connect(c.destination);s.start(t)})}catch(e){}
+}
+function strum(ch,at=0){ch.f.forEach((f,i)=>{if(f>=0) pluck(OPEN_F[5-i]*Math.pow(2,f/12),at+i*.045,.35)})}
+const strumSeq=(chs,at=0)=>{chs.forEach((c,i)=>strum(c,at+i*.6));return chs.length*.6+1.3};   // returns how long it sounds (s)
+// ---- sound effects, all synthesized in the browser ----
+function nz(){const c=ac();if(bufs.has('noise'))return bufs.get('noise');const b=c.createBuffer(1,c.sampleRate,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;bufs.set('noise',b);return b}
+function osc(f,at,dur,vol,type='sine',f2){
+  if(!sound) return;
+  try{const c=ac(),t=c.currentTime+at,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+    if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    g.gain.setValueAtTime(vol*VOL,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur+.02)}catch(e){}
+}
+function hiss(at,dur,vol,type,f1,f2,q=1){   // filtered noise burst, the filter can sweep from f1 to f2
+  if(!sound) return;
+  try{const c=ac(),t=c.currentTime+at,s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();
+    s.buffer=nz();fl.type=type;fl.Q.value=q;fl.frequency.setValueAtTime(f1,t);if(f2) fl.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol*VOL,t+Math.min(.02,dur/3));g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    s.connect(fl);fl.connect(g);g.connect(c.destination);s.start(t,Math.random()*.3,dur+.05)}catch(e){}
+}
+const ding=()=>{osc(1046.5,0,.7,.28);osc(1568,0,.5,.14);osc(2093,.02,.35,.08)};
+const clink=(at=0,b=1)=>{[2400,3680,5400].forEach((f,i)=>osc(f*b,at,.45-i*.1,.2/(i+1)+.04));hiss(at,.05,.25,'highpass',5000)};
+function whoosh(at=0){hiss(at,.45,.5,'bandpass',300,3800,2);osc(500,at,.4,.08,'sine',1900)}
+function boneBreak(at=0){hiss(at,.07,.7,'highpass',2500);osc(700,at,.06,.25,'square',160);hiss(at+.09,.06,.5,'highpass',3000);osc(900,at+.09,.05,.18,'square',220)}
+const hit=()=>{whoosh();boneBreak(.28)};
+function crumble(at=0){for(let i=0;i<14;i++) hiss(at+i*.055+Math.random()*.04,.05,.4*(1-i/16),'bandpass',1500+Math.random()*3000,null,3);hiss(at,.45,.25,'lowpass',500,120)}
+function unlock(at=0){clink(at,.75);clink(at+.14,.75);for(let i=0;i<5;i++) osc(1800+i*40,at+.34+i*.04,.03,.1,'square');
+  [784,1046.5,1318.5].forEach((f,i)=>{osc(f,at+.6+i*.1,.5,.2);osc(f*2,at+.6+i*.1,.3,.06)})}
+
+// ---- background lava rumble: looping low brown noise, never louder than 15% ----
+let rumble=null;
+let rumbleOn=true;
+function startRumble(){
+  if(rumble||!sound||!rumbleOn) return;
+  try{const c=ac(),n=c.sampleRate*4,b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);let last=0;
+    for(let i=0;i<n;i++){last=(last+.02*(Math.random()*2-1))/1.02;d[i]=last*3.5}
+    for(let i=0;i<4000;i++){const k=i/4000;d[i]*=k;d[n-1-i]*=k}
+    const s=c.createBufferSource(),lp=c.createBiquadFilter(),g=c.createGain(),rm=c.createGain(),lfo=c.createOscillator(),lg=c.createGain();
+    s.buffer=b;s.loop=true;lp.type='lowpass';lp.frequency.value=160;g.gain.value=.1;   // .1 + LFO .05 = .15 peak
+    lfo.frequency.value=.15;lg.gain.value=.05;lfo.connect(lg);lg.connect(g.gain);
+    s.connect(lp);lp.connect(g);g.connect(rm);rm.connect(c.destination);s.start();lfo.start();rumble={rm}}catch(e){}
+}
+// ---- backing drum beat (50% bus), scheduled ahead of time so it stays steady ----
+const FEELS=[ // 16 sixteenth-note steps per bar; k kick, s snare, h hats ('e' eighths, 's' sixteenths)
+  {n:'Groove',k:[0,7,15],s:[4,12],h:'e'},{n:'Rock',k:[0,8],s:[4,12],h:'e'},{n:'Push',k:[0,6,10],s:[4,12],h:'e'},
+  {n:'Funk',k:[0,3,10,14],s:[4,12],h:'s'},{n:'Half-time',k:[0,10],s:[8],h:'e'}];
+let bpm=60, feel=FEELS[0], drumsOn=true, firstGame=true, bus=null; const beat={timer:null,next:0,step:0};
+function drum(kind,t,vol){
+  const c=ctx;
+  if(kind==='k'){const o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+.28);o.connect(g);g.connect(bus);o.start(t);o.stop(t+.3);return}
+  const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+  s.buffer=nz();f.type='highpass';f.frequency.value=kind==='h'?7500:1200;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+(kind==='h'?.045:.16));
+  s.connect(f);f.connect(g);g.connect(bus);s.start(t,Math.random()*.5,.2);
+  if(kind==='s'){const o=c.createOscillator(),og=c.createGain();o.type='triangle';o.frequency.value=190;og.gain.setValueAtTime(vol*.5,t);og.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(og);og.connect(bus);o.start(t);o.stop(t+.12)}
+}
+function beatTick(){
+  while(beat.next<ctx.currentTime+.12){
+    const s=beat.step%16,t=beat.next;
+    if(feel.k.includes(s)) drum('k',t,.9);
+    if(feel.s.includes(s)) drum('s',t,.6);
+    if(feel.h==='s') drum('h',t,s%2?.12:.25); else if(s%2===0) drum('h',t,.25);
+    beat.next+=60/bpm/4;beat.step++;
+  }
+}
+function beatStart(){
+  if(beat.timer||!sound||!drumsOn) return;
+  try{const c=ac();if(!bus){bus=c.createGain();bus.gain.value=.5;bus.connect(c.destination)}
+    beat.next=c.currentTime+.08;beat.step=0;beat.timer=setInterval(beatTick,25)}catch(e){}
+}
+function beatStop(){clearInterval(beat.timer);beat.timer=null}
+function syncBeat(){if(phase==='quest'&&drumsOn&&sound) beatStart(); else beatStop()}
+function arp(ch,at=0){   // notes up the strings then back down
+  const fs=ch.f.map((f,i)=>f>=0?OPEN_F[5-i]*Math.pow(2,f/12):0).filter(Boolean);
+  fs.concat(fs.slice(0,-1).reverse()).forEach((f,i)=>pluck(f,at+i*.11,.4));
+}
+
+// ---- lava bubbles ----
+function bubble(){
+  const box=$('bub'); if(box.childElementCount>14) return;
+  const s=10+Math.random()*20, d=document.createElement('i');
+  d.className='b';
+  d.style.cssText='left:'+(Math.random()*95)+'%;top:'+(Math.random()*92)+'%;width:'+s+'px;height:'+s+'px;--d:'+(1.6+Math.random()*1.2)+'s';
+  d.addEventListener('animationend',()=>d.remove());box.appendChild(d);
+}
+setInterval(bubble,420);
+
+
+// ---- riff / melody generator (minor or major pentatonic in the key of the progression) ----
+const GROUPS=[[5,4,3],[4,3,2],[3,2,1],[2,1,0]], STR=['e','B','G','D','A','E'];   // string groups: E-A-D, A-D-G, D-G-B, G-B-e
+const ROWMIDI=[64,59,55,50,45,40], PENT={maj:[0,2,4,7,9],min:[0,3,5,7,10]};
+const keyName=k=>disp(SHARPS[k.r])+(k.m==='min'?' minor':' major');
+function genMelody(key){
+  const gi=Math.floor(Math.random()*GROUPS.length), rows=GROUPS[gi], riff=gi<2, scale=PENT[key.m].map(x=>(key.r+x)%12);
+  for(;;){
+    const lo=Math.floor(Math.random()*8), c=[];
+    rows.forEach(r=>{for(let f=lo;f<=lo+4&&f<=12;f++){const pc=(OPEN_N[r]+f)%12;if(scale.includes(pc)) c.push({r,f,m:ROWMIDI[r]+f,pc})}});
+    // one hand position (5 frets); a pitch that exists on two strings is played on just one of them for the whole riff
+    const byM=new Map();shuffle(c).forEach(n=>{if(!byM.has(n.m)) byM.set(n.m,n)});c.length=0;byM.forEach(n=>c.push(n));
+    if(!c.some(n=>n.pc===key.r)||new Set(c.map(n=>n.pc)).size<4) continue;
+    // exactly one quarter-note rest in every bar, on beat 2, 3 or 4 (bar 3 keeps beat 4 for the closing root note)
+    const rest=new Set([0,1,2].map(bi=>bi*4+1+Math.floor(Math.random()*(bi===2?2:3))));
+    const roots=c.filter(n=>n.pc===key.r);
+    const mid=c.reduce((a,n)=>a+n.m,0)/c.length;
+    const near=(m,pool)=>{const p=pool.filter(n=>Math.abs(n.m-m)<=5&&n.m!==m);const q=p.length?p:pool;return q[Math.floor(Math.random()*q.length)]};
+    let cur=roots.reduce((a,n)=>Math.abs(n.m-mid)<Math.abs(a.m-mid)?n:a);
+    const bars=[];
+    for(let bi=0;bi<3;bi++){
+      let s16=0;const bar=[];
+      for(let b=0;b<4;b++){
+        let x=Math.random(),k=x<.35?'Q':x<.7?'E':x<.85?'T':'S';
+        if(k==='S'&&s16>=2) k='E'; if(k==='S') s16++;
+        if(bi===2&&b===3) k='Q';
+        if(rest.has(bi*4+b)){bar.push({k:'R',notes:[]});continue}
+        const n={Q:1,E:2,T:3,S:4}[k], notes=[];
+        for(let j=0;j<n;j++){
+          let nt;
+          if(bi===0&&b===0&&j===0) nt=cur;
+          else if(bi===2&&b===3) nt=roots.reduce((a,r)=>Math.abs(r.m-cur.m)<Math.abs(a.m-cur.m)?r:a);
+          else nt=near(cur.m,c);
+          notes.push(nt);cur=nt;
+        }
+        bar.push({k,notes});
+      }
+      bars.push(bar);
+    }
+    const nm=rows.map(r=>STR[r]);
+    return {riff,rows,bars,order:[0,1,0,2],key,label:nm.join('-'),desc:(riff?'Riff':'Melody')+' on the '+nm.map(x=>x==='E'?'low E':x==='e'?'high E':x).join(', ').replace(/, ([^,]+)$/,' and $1')+' strings'};
+  }
+}
+const tabBars=m=>m.order.map(i=>m.bars[i]);
+function tabSVG(m){
+  const BW=62, X0=42, SP=15, W=SP*5, bars=tabBars(m);
+  let s='<svg viewBox="0 0 540 300" role="img" aria-label="Four bar tab" font-family="Comic Neue,Arial,sans-serif" stroke="#2a1608" fill="#2a1608">';
+  for(let sys=0;sys<2;sys++){
+    const y0=26+sys*142;
+    for(let i=0;i<6;i++){
+      s+='<line x1="'+X0+'" y1="'+(y0+i*SP)+'" x2="'+(X0+8*BW)+'" y2="'+(y0+i*SP)+'" stroke-width="1.3"/>';
+      s+='<text x="'+(X0-14)+'" y="'+(y0+i*SP+4)+'" font-size="11" stroke="none" text-anchor="middle">'+STR[i]+'</text>';
+    }
+    ['T','A','B'].forEach((l,i)=>s+='<text x="12" y="'+(y0+SP*(1.5+i)+5)+'" font-size="14" font-weight="700" stroke="none" text-anchor="middle">'+l+'</text>');
+    for(let bb=0;bb<3;bb++){const x=X0+bb*4*BW;s+='<line x1="'+x+'" y1="'+y0+'" x2="'+x+'" y2="'+(y0+W)+'" stroke-width="1.3"/>'}
+    s+='<line x1="'+(X0+8*BW)+'" y1="'+y0+'" x2="'+(X0+8*BW)+'" y2="'+(y0+W)+'" stroke-width="'+(sys===1?4:1.3)+'"/>';
+    for(let bi=0;bi<2;bi++){
+      const bar=bars[sys*2+bi], bx=X0+bi*4*BW;
+      s+='<text x="'+(bx+4)+'" y="'+(y0-8)+'" font-size="10" stroke="none" font-weight="700">Bar '+(sys*2+bi+1)+'</text>';
+      bar.forEach((bt,b)=>{
+        const n=bt.notes.length, sp=(BW-10)/n, xs=bt.notes.map((_,j)=>bx+b*BW+5+sp*(j+.5));
+        bt.notes.forEach((nt,j)=>{
+          const y=y0+nt.r*SP, t=String(nt.f), w=t.length*8+4;
+          s+='<rect x="'+(xs[j]-w/2)+'" y="'+(y-7)+'" width="'+w+'" height="14" fill="#f7e6b8" stroke="none"/><text x="'+xs[j]+'" y="'+(y+5)+'" font-size="14" font-weight="700" text-anchor="middle" stroke="none">'+t+'</text>';
+        });
+        const sb=y0+W+12, st=sb+22;
+        if(bt.k==='R'){const rx=bx+b*BW+BW/2;s+='<path d="M'+(rx-3)+' '+sb+'l6 6-6 6 6 6q-7 0-4 7" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'}
+        xs.forEach(x=>s+='<line x1="'+x+'" y1="'+sb+'" x2="'+x+'" y2="'+st+'" stroke-width="1.5"/>');
+        if(n>1){
+          s+='<line x1="'+xs[0]+'" y1="'+st+'" x2="'+xs[n-1]+'" y2="'+st+'" stroke-width="3.5"/>';
+          if(bt.k==='S') s+='<line x1="'+xs[0]+'" y1="'+(st-6)+'" x2="'+xs[n-1]+'" y2="'+(st-6)+'" stroke-width="3.5"/>';
+          if(bt.k==='T') s+='<text x="'+((xs[0]+xs[n-1])/2)+'" y="'+(st+14)+'" font-size="12" font-style="italic" font-weight="700" text-anchor="middle" stroke="none">3</text>';
+        }
+      });
+    }
+  }
+  return s+'</svg>';
+}
+const tabHTML=m=>'<p class="sub" style="margin:0"><b>Key of '+keyName(m.key)+'</b> · '+m.desc+'</p><div class="tabwrap">'+tabSVG(m)+'</div>'+
+  '<p class="sub" style="margin:0;font-size:.9rem">Rhythms: quarter, eighth, triplet (3) and sixteenth notes, plus a quarter rest in every bar (the squiggle – stay silent for one beat). Bars play in the order 1, 2, 3, 4.</p>';
+function playMelody(m,at=0){
+  const total=16*60/bpm+1.5;
+  const d=60/bpm;let t=0;
+  tabBars(m).forEach(bar=>bar.forEach(bt=>{
+    const n=bt.notes.length;
+    bt.notes.forEach((nt,j)=>pluck(440*Math.pow(2,(nt.m-69)/12),at+(t+j/n)*d,.5));t++;
+  }));
+  return total;
+}
+
+// ---- game state ----
+let lay,tiles,par,legs,leg,phase,idx,hero,walked,prog,pat,prog2,pat2,mel,pkey,orbAGot,orbBGot,skelDown,skel2Down,keyGot,chestOpen,msg,sub=0,stones=[];
+// your artwork: one transparent PNG per game element in the art/ folder. Replace a file to restyle that element.
+const ART='art/';
+// the student id from the dashboard link (?student=rafi), cleaned so it is safe to show
+const STU=(new URLSearchParams(location.search).get('student')||'').toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+const img=(f,c)=>'<img class="'+c+'" src="'+ART+f+'.png" alt="" draggable="false">';
+let tries=0,wrong=0,secs=0,tick=null,started=false;
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function startTimer(){if(started) return;started=true;tick=setInterval(()=>{secs++;$('timer').textContent=fmt(secs)},1000)}
+
+const KEY=img('key','art'), ORB=img('power-orb','art'), SKEL=img('skeleton','art');
+const FRAG='<svg viewBox="0 0 24 24"><path d="M12 1l6 6-3 4 5 4-8 8-8-8 5-4-3-4z" fill="#ffd21a" stroke="#a87800" stroke-width="1" stroke-linejoin="round"/><path d="M12 1l-3 10 3 12 3-12z" fill="#fff08a" opacity=".55"/></svg>';
+const PICKOLD='<svg viewBox="0 0 24 28"><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".5" stop-color="#f5b82a"/><stop offset="1" stop-color="#b8780a"/></linearGradient></defs><path d="M12 27C7 21 2 14 2 8c0-3.5 2.5-6 6-6h8c3.5 0 6 2.5 6 6 0 6-5 13-10 19z" fill="url(#pg)" stroke="#6b4300" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 6c1-1.5 3-2 5-2" stroke="#fff8c8" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+const PICK=img('pick','art');
+const chestSVG=open=>img(open?'chest-open':'chest-closed','art');
+// target ring marking where the current leg ends
+const TARGET='<svg viewBox="0 0 100 100" fill="none" stroke="#ffd84a" stroke-linecap="round"><circle cx="50" cy="50" r="44" stroke-width="5"/><circle cx="50" cy="50" r="30" stroke-width="4" stroke-dasharray="11 8"/><path d="M50 1v13M50 86v13M1 50h13M86 50h13" stroke-width="5"/></svg>';
+
+function buildLegs(){
+  const N=lay.N, a=lay.orbA.end, b=lay.orbB.end, k=lay.key.end, sk=k-1, stand=k-2;
+  const pk=treePath(par,k,N), sk2=pk[pk.length-2], stand2=pk[pk.length-3];
+  const walk=(x,y,title,text,ev)=>({type:'walk',tiles:treePath(par,x,y),title,text,ev});
+  legs=[
+    walk(0,a,'Leg 1: Collect the first red power orb','Double-pick each highlighted note from the portal to the first red power orb. Where the path has a gap (···), skip over the empty fret or string. Press the button when you arrive.','orbA'),
+    {type:'chord',at:a,kind:'power',ci:[0,1]},
+    walk(a,b,'Leg 2: Collect the second red power orb','Double-pick each highlighted note to the second red power orb.','orbB'),
+    {type:'chord',at:b,kind:'power',ci:[2,3]},
+    walk(b,stand,'Leg 3: Sneak up on the skeleton','Double-pick each highlighted note to the stone in front of the skeleton.'),
+    {type:'chord',at:sk,kind:'skel',which:1},
+    walk(stand,k,'Leg 4: Grab the key','The skeleton is gone. Double-pick each highlighted note past him to the key.','key'),
+    {type:'chord',at:k,kind:'keymel'},
+    walk(k,stand2,'Leg 5: Sneak up on the second skeleton','Double-pick each highlighted note to the stone in front of the second skeleton.'),
+    {type:'chord',at:sk2,kind:'skel',which:2},
+    walk(stand2,N,'Leg 6: Reach the chest','The way is clear. Double-pick each highlighted note past him to the chest.'),
+    {type:'chord',at:N,kind:'chest'},
+    walk(N,0,'Leg 7: Run back to the portal','Double-pick each highlighted note back to the portal.'),
+    {type:'chord',at:0,kind:'portal'}
+  ];
+}
+function draw(){
+  const b=$('board');b.innerHTML='';
+  const at=new Map(tiles.map((p,i)=>[p[0]+','+p[1],i]));
+  const L=phase==='quest'?legs[leg]:null;
+  const routeSet=new Set(L&&L.type==='walk'?L.tiles:[]);
+  const dest=L?(L.type==='walk'?L.tiles[L.tiles.length-1]:L.at):-1;
+  const aI=lay.orbA.end, bI=lay.orbB.end, keyI=lay.key.end, skI=keyI-1, chI=lay.N, sk2I=chI-1;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const i=at.get(r+','+c), d=document.createElement('div');
+    d.className='cell';
+    if(i!==undefined){
+      const named=i<idx;
+      d.dataset.i=i;d.classList.add('path',named?'cool':'q');
+      if(walked.has(i)) d.classList.add('walked');
+      if(routeSet.has(i)) d.classList.add('route');
+      if(i===dest) d.classList.add('dest');
+      if(phase==='name'&&i===idx) d.classList.add('active');
+      let h=i===0?'':'<img class="rock" src="'+ART+'stone'+(stones[i]+1)+'.png" alt="" draggable="false">';
+      if(i===0){d.classList.add('portal');h+=img('portal','portalimg')}
+      else if(i===aI||i===bI){d.classList.add('poi');h+='<span class="ico zap'+((i===aI?orbAGot:orbBGot)?' gone':'')+'">'+ORB+'</span>'}
+      else if((i===skI&&!skelDown)||(i===sk2I&&!skel2Down)){d.classList.add('poi');h+='<span class="ico skel">'+SKEL+'</span>'}
+      else if(i===keyI){d.classList.add('poi');h+='<span class="ico keyico'+(keyGot?' gone':'')+'">'+KEY+'</span>'}
+      else if(i===chI){d.classList.add('poi');h+='<span class="ico chest">'+chestSVG(chestOpen)+'</span>'}
+      const nn=noteAt(tiles[i]);h+='<span class="t'+(named&&FLAT[nn]?' acc':'')+'">'+(named?(FLAT[nn]?nn+'<br>'+FLAT[nn]:nn):'?')+'</span>';
+      if(phase!=='name'&&i===hero) h+='<i class="pick" title="You are here">'+PICK+'</i>';
+      if(L&&L.type==='walk'&&i===dest) h+='<i class="target" title="Go here">'+TARGET+'</i>';
+      d.innerHTML='<div class="fl" style="--dl:-'+((i*.53)%3).toFixed(2)+'s">'+h+'</div>';
+    }
+    b.appendChild(d);
+  }
+  for(let c=0;c<COLS;c++) b.insertAdjacentHTML('beforeend','<div class="lab">'+([0,3,5,7,9,12].includes(c)?c:'')+'</div>');
+}
+const cellOf=i=>$('board').querySelector('.cell[data-i="'+i+'"]');
+function hud(){
+  const c=(on,t)=>'<span class="chip'+(on?' on':'')+'">'+t+'</span>';
+  $('hud').innerHTML=c(orbAGot,'Orb 1')+c(orbBGot,'Orb 2')+c(skelDown,'Skeleton 1')+c(keyGot,'Key')+c(skel2Down,'Skeleton 2')+c(chestOpen,'Chest')+c(phase==='done','Portal');
+}
+const chordRow=(cs,num,two)=>'<div class="chords'+(two?' two':'')+'">'+cs.map((c,i)=>'<div class="cw"><span>'+(num?(i+1)+'. ':'')+c.n+'</span>'+chordSVG(c)+'</div>').join('')+'</div>';
+// each chord pop-up is a list of checked steps; the student presses "I played it" on each before the quest continues
+const melSteps=(head,snd)=>({head,melody:true,steps:[
+  {t:'KEY MELODY',body:tabHTML(mel),txt:'Play the 4-bar '+(mel.riff?'riff':'melody')+' through at least twice.',snd,hear:()=>playMelody(mel,0)}]});
+const arpAll=cs=>{cs.forEach((c,i)=>arp(c,i*1.6));return cs.length*1.6+.6};
+let hearT=null;   // 'Hear it' pauses the backing drums so the reference plays on its own, then they resume
+function popPlan(L){
+  if(L.kind==='power'){
+    const a=prog[L.ci[0]], b=prog[L.ci[1]], two=chordRow([a,b],false,true);
+    const combo={t:'CHORD COMBO!',body:two,txt:'Play each chord once in this pattern: '+a.n+' – '+b.n+' – '+a.n,snd:ding,hear:()=>strumSeq([a,b,a])};
+    return {head:'Red power orb collected!',steps:[combo,{t:'ARPEGGIATE!',body:two,txt:'Arpeggiate each chord up and down twice.',snd:ding,hear:()=>arpAll([a,b])},{...combo}]};
+  }
+  if(L.kind==='keymel') return melSteps('Key collected!',ding);
+  if(L.kind==='chest') return melSteps('The chest is locked!',()=>{unlock();ding()});
+  const P=L.which===2?prog2:prog, PT=L.which===2?pat2:pat, row=chordRow(P,true,false);
+  if(L.kind==='portal') return {head:'The portal is dormant!',steps:[{t:'ACTIVATE THE PORTAL!',body:chordRow(prog,true,false),txt:'Play the Chord Combo through the progression, ending and hanging on the first chord ('+prog[0].n+') – let it ring!',snd:()=>{whoosh();ding()},hear:()=>strumSeq(prog.concat([prog[0]]))}]};
+  const x=PT.some(b=>b.k==='X')?'<p class="sub" style="margin:6px 0 0;font-size:.9rem">X = rest (mute the strings)</p>':'';
+  return {head:L.which===2?'A second skeleton guards the chest!':'A skeleton blocks the way!',hp:true,steps:[
+    {t:'PHASE 1 · CHORD COMBO!',body:row,txt:'Strum each chord in the chord progression once. Play the full progression twice.',snd:()=>{hit();ding()},hear:()=>strumSeq(P)},
+    {t:'PHASE 2 · ARPEGGIATE!',body:row,txt:'Arpeggiate each chord up and down through the progression twice.',snd:()=>{hit();ding()},hear:()=>arpAll(P)},
+    {t:'PHASE 3 · RHYTHM!',body:row+'<p class="sub" style="margin:10px 0 6px"><b>Chord strumming pattern:</b></p>'+beatsHTML(PT)+x,txt:'Strum the chord strumming pattern through the progression twice.',snd:()=>{hit();ding()},hear:()=>strumSeq(P)},
+    {t:'PHASE 4 · COMBO FINISHER!',body:row,txt:'Double strum each chord through the progression once, ending on the first chord ('+P[0].n+')!',snd:()=>{hit();crumble(.6);ding()},hear:()=>strumSeq(P.concat([P[0]]))}]};
+}
+function showPop(L){
+  const plan=popPlan(L), s=plan.steps[sub], n=plan.steps.length;
+  $('popHead').textContent=plan.head;$('popT').textContent=s.t;$('popBody').innerHTML=s.body;const hb=$('popHear');hb.hidden=!s.hear;hb.onclick=()=>{if(!s.hear) return;beatStop();clearTimeout(hearT);const d=s.hear()||3;hearT=setTimeout(syncBeat,(d+.2)*1000)};$('popTxt').textContent=s.txt;
+  $('popSteps').className='steps'+(n>1?' dots':'');
+  $('popSteps').innerHTML=plan.chips?'<span>1 Strum</span><span>2 Arpeggiate</span><span>3 Strum</span>':n>1?plan.steps.map((_,i)=>'<span class="'+(i<sub?'ok':i===sub?'on':'')+'">'+(i+1)+'</span>').join(''):'';
+  const hp=$('popHp');hp.hidden=!plan.hp;
+  if(plan.hp) hp.innerHTML='Skeleton health '+plan.steps.map((_,i)=>'<i class="'+(i<sub?'off':'')+'"></i>').join('');
+  $('popDone').textContent=n>1&&sub<n-1?'I played it – next step':'I played it';
+  $('pop').hidden=false;$('popDone').focus({preventScroll:true});
+}
+function popNext(){
+  const L=legs[leg], plan=popPlan(L);
+  plan.steps[sub].snd();
+  if(sub<plan.steps.length-1){sub++;showPop(L)}else completeLeg();
+}
+function render(){
+  const p=$('panel');
+  hud();draw();$('pop').hidden=true;syncBeat();
+  if(phase==='name'){
+    p.innerHTML='<h2 class="prompt">What note is on the glowing stone?</h2><p class="sub">Stone '+idx+' of '+(tiles.length-1)+'. The portal shows the open string you start on. Use the string order and the fret numbers to work out the rest.</p><div class="keys">'+
+      NOTES.map(n=>'<button class="key" type="button" data-n="'+n+'">'+disp(n)+'</button>').join('')+'</div><p class="feedback" id="fb" aria-live="polite"></p>';
+    p.querySelectorAll('.key').forEach(k=>k.onclick=()=>answer(k.dataset.n));
+  }else if(phase==='quest'){
+    const L=legs[leg];
+    if(L.type==='walk'){
+      p.innerHTML='<h2 class="prompt">'+L.title+'</h2><p class="sub big">'+L.text+'</p><div class="seq" aria-label="Notes on the route">'+
+        L.tiles.map((i,x)=>(x&&isGap(tiles[L.tiles[x-1]],tiles[i])?'<span class="gap" title="Gap: skip a stone or string">···</span>':'')+'<span>'+disp(noteAt(tiles[i]))+'</span>').join('')+'</div>'+(msg?'<p class="feedback">'+msg+'</p>':'')+
+        '<div class="row"><button class="btn go" id="played" type="button">I played the whole route</button></div>';
+      $('played').onclick=completeLeg;$('played').focus({preventScroll:true});
+    }else{
+      p.innerHTML='<h2 class="prompt">Quest challenge</h2><p class="sub big">'+(msg||'Play what the pop-up shows.')+'</p>';
+      showPop(L);
+    }
+  }else{
+    const m=Math.ceil(secs/60), per=Math.max(1,Math.ceil(m/5)), named=tiles.length-1;
+    const acc=tries?Math.round(100*(tries-wrong)/tries):100;
+    const txt='Lava Dungeon - Map Maze\n'+(STU?'Student: '+STU+'\n':'')+'Practice time: '+fmt(secs)+' ('+m+' min)\nGolden fragments: +1\nTheory - Note Reading: '+per+' XP ('+named+' notes named, '+acc+'% first-try correct)\nTechnique - Single-Note Playing: '+per+' XP\nChords - progression '+prog.map(c=>c.n).join(' ')+': '+per+' XP\nArpeggios: '+per+' XP\nScales - key melody in '+keyName(pkey)+' pentatonic: '+per+' XP\nStrumming patterns used: '+patText(pat)+' / '+patText(pat2)+'\nSecond skeleton progression: '+prog2.map(c=>c.n).join(' ')+'\nKey melody: '+keyName(pkey)+' pentatonic '+(mel.riff?'riff':'melody')+' ('+mel.label+' strings)'+'\nBacking beat: '+feel.n+' at '+bpm+' BPM';
+    p.innerHTML='<h2 class="prompt">Treasure secured! XP orbs earned</h2><div class="orbs">'+
+      '<div class="orb grey"><b>'+per+'</b><span>Theory XP</span></div><div class="orb purple"><b>'+per+'</b><span>Technique XP</span></div>'+
+      '<div class="orb red"><b>'+per+'</b><span>Chords XP</span></div><div class="orb blue"><b>'+per+'</b><span>Arpeggios XP</span></div><div class="orb green"><b>'+per+'</b><span>Scale XP</span></div></div>'+
+      '<div class="frag">'+FRAG+'<span>+1 Golden Fragment</span></div><div class="done"><pre id="sum">'+txt+'</pre></div>'+
+      '<div class="row"><button class="btn" id="copy" type="button">Copy summary</button><button class="btn" id="lessonPng" type="button">Download lesson material</button><button class="btn dark" id="again" type="button">Play a new path</button></div><p class="feedback" id="fb"></p>';
+    $('copy').onclick=()=>{const f=$('fb');(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>f.textContent='Copied. Send it to your teacher.').catch(()=>{const s=getSelection(),r=document.createRange();r.selectNodeContents($('sum'));s.removeAllRanges();s.addRange(r);f.textContent='Text selected. Copy it manually.'})};
+    $('lessonPng').onclick=saveLessonPNG;
+    $('again').onclick=reset;
+  }
+}
+
+// ---- "Download lesson material": a printable revision page built from what the student discovered ----
+function lessonDoc(logo){
+  const uniq=[...new Map(prog.map(c=>[c.n,c])).values(), ...prog2.filter(c=>!prog.includes(c))];
+  const d=new Date().toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+  const css='body{margin:0;background:#f4ead2;color:#2a1608;font-family:"Comic Neue","Trebuchet MS",Arial,sans-serif;line-height:1.4}main{max-width:820px;margin:0 auto;padding:28px 20px 48px}'+
+   '.hd{display:flex;align-items:center;gap:18px}.hd img{height:auto;flex:none}h1{font-size:2rem;margin:0 0 4px}h2{font-size:1.4rem;margin:30px 0 6px;border-bottom:3px solid #c8641c;padding-bottom:4px}.meta{opacity:.8;margin:0 0 8px}'+
+   '.chords{display:flex;gap:14px;flex-wrap:wrap}.cw{display:flex;flex-direction:column;align-items:center;font-size:1.4rem;font-weight:700}.cw svg.chord{width:130px;height:auto}'+
+   '.prog{font-size:1.25rem;font-weight:700;margin:8px 0}.beats{display:flex;gap:8px;flex-wrap:wrap}.beat{background:#3a2210;color:#f7e6b8;border-radius:6px;padding:8px 10px;min-width:70px;display:flex;flex-direction:column;align-items:center;gap:4px}.beat.x{background:#6a2a22}.beat .ar{display:flex;gap:4px}'+
+   '.beat svg{width:14px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.beat small{font-size:.75rem}'+
+   '.tabwrap{background:#f7e6b8;border:2px solid #7a5a2c;border-radius:6px;padding:4px}.tabwrap svg{display:block;width:100%;height:auto}.sub{margin:6px 0}.note{font-size:.95rem;opacity:.85}'+
+   '@media print{body{background:#fff}main{padding:0}h2{break-after:avoid}.cw,.beats,.tabwrap{break-inside:avoid}}';
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lava Dungeon - Map Maze - Discovery</title><style>'+css+'</style></head><body><main>'+
+   '<div class="hd">'+(logo?'<img src="'+logo+'" alt="Guitarcadia" width="150">':'')+'<div><h1>Lava Dungeon - Map Maze - Discovery</h1><p class="meta">Guitarcadia practice material · '+(STU?STU+' · ':'')+d+'</p></div></div>'+
+   '<h2>Chords Discovered:</h2><div class="chords">'+uniq.map(c=>'<div class="cw"><span>'+c.n+'</span>'+chordSVG(c)+'</div>').join('')+'</div>'+
+   '<p class="prog">Chord Combo: '+prog.map(c=>c.n).join(' – ')+' – '+prog[0].n+'</p><p class="note">Practice: strum each chord, then arpeggiate it, then play the progression twice ending on '+prog[0].n+'. Variation: '+prog2.map(c=>c.n).join(' – ')+' – '+prog2[0].n+'.</p>'+
+   '<h2>Rhythm Discovered:</h2><p class="sub"><b>Pattern 1</b></p>'+beatsHTML(pat)+'<p class="sub"><b>Pattern 2</b></p>'+beatsHTML(pat2)+'<p class="note">Play each pattern through the chord progression, twice. X = rest (mute the strings).</p>'+
+   '<h2>Melody Discovered:</h2>'+tabHTML(mel)+
+   '</main></body></html>';
+}
+
+// render the lesson page to a PNG image (SVG foreignObject -> canvas), 2x for sharp lines
+async function logoData(){
+  const b=await (await fetch('art/logo.png')).blob();
+  return await new Promise((r,j)=>{const f=new FileReader();f.onload=()=>r(f.result);f.onerror=j;f.readAsDataURL(b)});
+}
+async function lessonPNG(){
+  let logo='';try{logo=await logoData()}catch(e){}
+  return new Promise((res,rej)=>{
+    const doc=new DOMParser().parseFromString(lessonDoc(logo),'text/html'), W=860;
+    const css=doc.querySelector('style').textContent.replace(/body\{[^}]*\}/,'').replace(/main\{[^}]*\}/,'');
+    const host=document.createElement('div');
+    host.style.cssText='position:fixed;left:-9999px;top:0;width:'+W+'px';
+    host.innerHTML='<style>'+css+'</style><div class="lp" style="width:'+W+'px;box-sizing:border-box;padding:28px 28px 40px;background:#f4ead2;color:#2a1608;font-family:\'Comic Neue\',\'Trebuchet MS\',Arial,sans-serif;line-height:1.4">'+doc.querySelector('main').innerHTML+'</div>';
+    document.body.appendChild(host);
+    const el=host.querySelector('.lp'), H=Math.ceil(el.getBoundingClientRect().height);
+    el.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
+    const xml=new XMLSerializer().serializeToString(host.firstChild)+new XMLSerializer().serializeToString(el);
+    host.remove();
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject width="100%" height="100%">'+xml+'</foreignObject></svg>';
+    const img=new Image();
+    img.onload=()=>{try{const k=2,c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d');x.scale(k,k);x.drawImage(img,0,0);c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/png')}catch(e){rej(e)}};
+    img.onerror=()=>rej(new Error('image'));
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  });
+}
+async function saveLessonPNG(){
+  const f=$('fb');f.textContent='Making your picture...';
+  try{
+    const blob=await lessonPNG(), name='Lava-Dungeon-Map-Maze-Discovery.png';
+    const dl=window.claude&&await claude.use('downloads');
+    if(dl){await dl.save({filename:name,data:blob});f.textContent='Lesson picture saved. Keep it in your practice folder!';return}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();f.textContent='Lesson picture downloaded.';
+  }catch(e){f.textContent=e&&e.code==='declined'?'Download cancelled.':'Could not make the picture here. Please try again, or ask your teacher for the lesson page.'}
+}
+function answer(n){
+  startTimer();tries++;
+  const ok=n===noteAt(tiles[idx]), fb=$('fb');
+  if(ok){
+    pluck(freqAt(tiles[idx]));idx++;
+    if(idx>=tiles.length){phase='quest';leg=0;hero=0;msg='The path is built. Time for the quest!'}
+    render();
+  }else{
+    wrong++;twang(freqAt(tiles[idx]));
+    const c=cellOf(idx);c.classList.remove('shake');void c.offsetWidth;c.classList.add('shake');
+    fb.textContent='Not quite. Try again.';fb.className='feedback bad';
+  }
+}
+function completeLeg(){
+  const L=legs[leg];msg='';sub=0;
+  if(L.type==='walk'){
+    L.tiles.forEach(i=>walked.add(i));hero=L.tiles[L.tiles.length-1];
+    if(L.ev==='orbA'){orbAGot=true;msg='First red power orb collected!';pluck(880);pluck(1318.5,.1)}
+    else if(L.ev==='orbB'){orbBGot=true;msg='Second red power orb collected!';pluck(880);pluck(1318.5,.1)}
+    else if(L.ev==='key'){keyGot=true;msg='Key collected!';clink()}
+    else pluck(freqAt(tiles[hero]),0,.4);
+  }else{
+    if(L.kind==='power'){msg=L.ci[0]===0?'Power acquired! Now find the second orb.':'Both powers acquired! Now sneak up on the skeleton.'}
+    else if(L.kind==='skel'){if(L.which===2){skel2Down=true;msg='The second skeleton crumbles! The chest is within reach.'}else{skelDown=true;msg='The skeleton crumbles! The way to the key is clear.'}}
+    else if(L.kind==='keymel') msg='Key melody learned! Now find the second skeleton before the chest.';
+    else if(L.kind==='chest'){chestOpen=true;msg='The chest is open! Now escape through the portal.'}
+  }
+  leg++;
+  if(leg>=legs.length){phase='done';clearInterval(tick);pluck(392);pluck(493.88,.12);pluck(587.33,.24);pluck(783.99,.36)}
+  render();
+}
+function reset(){
+  clearInterval(tick);started=false;secs=0;tries=0;wrong=0;
+  idx=1;leg=0;phase='name';hero=0;walked=new Set();
+  orbAGot=orbBGot=skelDown=skel2Down=keyGot=chestOpen=false;msg='';
+  pkey=newProg();prog=pkey.c.map(chordBy);pat=genPattern();
+  prog2=[prog[0],prog[2],prog[1],prog[3]];do{pat2=genPattern()}while(patText(pat2)===patText(pat));mel=genMelody(pkey);
+  lay=genLayout();tiles=lay.t;par=lay.par;buildLegs();stones=tiles.map(()=>Math.floor(Math.random()*4));sub=0;
+  feel=firstGame?FEELS[0]:FEELS[Math.floor(Math.random()*FEELS.length)];firstGame=false;beatStop();   // a new path brings a new backing beat
+  $('beatName').textContent='Beat: '+feel.n+' · plays during the quest';
+  $('timer').textContent='00:00';render();
+}
+$('popDone').onclick=popNext;
+$('newpath').onclick=reset;
+$('mute').onclick=e=>{
+  sound=!sound;e.target.textContent=sound?'Sound on':'Sound off';
+  if(sound) startRumble();
+  if(rumble) rumble.rm.gain.value=sound&&rumbleOn?1:0;
+  syncBeat();
+};
+$('bpm').oninput=e=>{bpm=+e.target.value;$('bpmv').textContent=bpm};
+$('lavaBtn').onclick=e=>{rumbleOn=!rumbleOn;e.target.textContent=rumbleOn?'Lava ambience on':'Lava ambience off';e.target.setAttribute('aria-pressed',rumbleOn);if(rumbleOn) startRumble();if(rumble) rumble.rm.gain.value=sound&&rumbleOn?1:0};
+$('drumBtn').onclick=e=>{drumsOn=!drumsOn;e.target.textContent=drumsOn?'Drums on':'Drums off';e.target.setAttribute('aria-pressed',drumsOn);syncBeat()};
+['pointerdown','keydown'].forEach(ev=>addEventListener(ev,()=>{if(sound) startRumble()},{once:true}));
+reset();
+</script>
+
+</body></html>
